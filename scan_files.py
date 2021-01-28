@@ -1,11 +1,9 @@
-import os
 import hashlib
 import logging
 import os
 import sys
 import time
 import traceback
-import logging
 
 MaxMemoryUsageAllow = (1024 * 1024) * 1024  # 在计算文件sha512时允许的最大内存消耗(MB)，提高此参数可以加快大文件的计算速度
 LogFile = "oss-sync.log"
@@ -34,17 +32,19 @@ except AssertionError:
     logging.exception("备份目录'%s'无效，请检查设置" % dirs)
     sys.exit(1)
 
-logging.basicConfig(filename=LogFile, encoding='utf-8', level=logging.DEBUG, format='[%(asctime)s] %(levelname)s: %(message)s')
 
+def get_file_sha1(file_name):
+    """计算文件的sha1
 
-def get_file_sha512(file_name):
+    :param str file_name: 需要计算sha1的文件名
+    """
     #start_time = time.time()
-    m = hashlib.sha512()
+    m = hashlib.sha1()
     try:
         with open(file_name, 'rb') as fobj:
-            if os.path.getsize(file_name) > MaxMemoryAllow:
+            if os.path.getsize(file_name) > MaxMemoryUsageAllow:
                 while True:
-                    data = fobj.read(MaxMemoryAllow)
+                    data = fobj.read(MaxMemoryUsageAllow)
                     if not data:
                         break
                     m.update(data)
@@ -52,22 +52,24 @@ def get_file_sha512(file_name):
                 m.update(fobj.read())
     except:
         logging.exception("Fail when opening the file: %s", file_name)
-    #logging.debug("分块sha512 耗时 %f 秒" % (time.time() - start_time))
+    #logging.debug("分块sha1 耗时 %f 秒" % (time.time() - start_time))
     return m.hexdigest()
 
 
 def listFiles(dir):
     paths = []
+    dir = os.path.abspath(dir)
     for root, dirs, files in os.walk(dir):
         for file in files:
-            paths.append(os.path.abspath(os.path.join(root, file)))  # 使用绝度路径以避免问题
+            paths.append(os.path.join(root, file))  # 使用绝度路径以避免问题
     return paths
 
 
 if __name__ == "__main__":
-    files = listFiles('D:\Python')
+    files = listFiles('/mnt/main-pool/personal/sdy')
     start_time = time.time()
+    file_sha1 = []
     for path in files:
-        get_file_sha512(path)
-    logging.debug("sha512 耗时 %f 秒" % (time.time() - start_time))
+        file_sha1.append(get_file_sha1(path))
+    logging.debug("共扫描%d个文件 sha1 耗时 %f 秒" % (len(files), time.time() - start_time))
     # get_file_sha512('ll.asd')
