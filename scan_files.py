@@ -1,11 +1,38 @@
 import os
 import hashlib
+import logging
+import os
+import sys
 import time
 import traceback
 import logging
 
-MaxMemoryAllow = int(1024 * 1024 * 100)  # 在计算文件sha512时允许的最大内存消耗(MB)，提高此参数可以加快大文件的计算速度
+MaxMemoryUsageAllow = (1024 * 1024) * 1024  # 在计算文件sha512时允许的最大内存消耗(MB)，提高此参数可以加快大文件的计算速度
 LogFile = "oss-sync.log"
+LogFormat = "[%(asctime)s] %(levelname)s: %(message)s"
+
+local_bace_dir = "/mnt/"  # 本地工作目录（绝对路径, eg：/mnt/）
+backup_dirs = ["asd/"]  # 备份目录（相对于local_bace_dir, eg:data/）
+
+try:
+    logging.basicConfig(filename=LogFile, encoding='utf-8', level=logging.DEBUG, format=LogFormat)  # only work on python>=3.9
+except ValueError:
+    logging.basicConfig(filename=LogFile, level=logging.DEBUG, format=LogFormat)
+    logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
+
+try:
+    os.chdir(local_bace_dir)
+except FileNotFoundError:
+    print("本地工作目录'%s'无效，请检查设置" % local_bace_dir)
+    logging.exception("本地工作目录'%s'无效，请检查设置" % local_bace_dir)
+    sys.exit(1)
+try:
+    for dirs in backup_dirs:
+        assert os.path.isdir(dirs)
+except AssertionError:
+    print("备份目录'%s'无效，请检查设置" % dirs)
+    logging.exception("备份目录'%s'无效，请检查设置" % dirs)
+    sys.exit(1)
 
 logging.basicConfig(filename=LogFile, encoding='utf-8', level=logging.DEBUG, format='[%(asctime)s] %(levelname)s: %(message)s')
 
