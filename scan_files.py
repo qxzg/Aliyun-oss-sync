@@ -10,7 +10,7 @@ LogFile = "oss-sync.log"
 LogFormat = "%(asctime)s - [%(levelname)s]: %(message)s"
 
 local_bace_dir = "/mnt/"  # 本地工作目录（绝对路径, eg：/mnt/）
-backup_dirs = ["asd/"]  # 备份目录（相对于local_bace_dir, eg:data/）
+backup_dirs = ["main-pool/personal/"]  # 备份目录（相对于local_bace_dir, eg:data/）
 
 try:
     logging.basicConfig(filename=LogFile, encoding='utf-8', level=logging.DEBUG, format=LogFormat)  # only work on python>=3.9
@@ -33,7 +33,7 @@ except AssertionError:
     sys.exit(1)
 
 
-def get_file_sha1(file_name):
+def Get_File_Sha1(file_name):
     """计算文件的sha1
 
     :param str file_name: 需要计算sha1的文件名
@@ -56,19 +56,36 @@ def get_file_sha1(file_name):
     return m.hexdigest()
 
 
-def listFiles(dir):
+def ListFiles(target_dir):
     paths = []
-    dir = os.path.abspath(dir)
-    for root, dirs, files in os.walk(dir):
+    file_num = 0
+    file_size = 0
+    target_dir = os.path.abspath(target_dir)
+    for root, dirs, files in os.walk(target_dir):
         for file in files:
-            paths.append(os.path.join(root, file))  # 使用绝度路径以避免问题
-    return paths
+            path = os.path.join(root, file)
+            paths.append(path)  # 使用绝度路径以避免问题
+            file_num += 1
+            file_size += os.path.getsize(path)
+    return [paths, file_num, file_size]
 
 
 if __name__ == "__main__":
-    files = listFiles('/mnt/main-pool/personal/sdy')
+    files = []
+    file_num = 0
+    file_size = 0
+    for i in backup_dirs:
+        print("正在读取备份目录:" + i)
+        getfiles = ListFiles(i)
+        files.append(getfiles[0])
+        file_num += getfiles[1]
+        file_size += getfiles[2]
+    del getfiles
+    print("备份文件总数：%d\n备份文件总大小：%.2f GB" % (file_num, file_size / (1024 * 1024 * 1024)))
+"""
     start_time = time.time()
     file_sha1 = []
     for path in files:
-        file_sha1.append(get_file_sha1(path))
+        file_sha1.append(Get_File_Sha1(path))
     logging.debug("共扫描%d个文件 sha1 耗时 %f 秒" % (len(files), time.time() - start_time))
+"""
