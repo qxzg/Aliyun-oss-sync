@@ -7,7 +7,7 @@ import traceback
 
 MaxMemoryUsageAllow = (1024 * 1024) * 1024  # 在计算文件sha512时允许的最大内存消耗(MB)，提高此参数可以加快大文件的计算速度
 LogFile = "oss-sync.log"
-LogFormat = "[%(asctime)s] %(levelname)s: %(message)s"
+LogFormat = "%(asctime)s - [%(levelname)s]: %(message)s"
 
 local_bace_dir = "/mnt/"  # 本地工作目录（绝对路径, eg：/mnt/）
 backup_dirs = ["asd/"]  # 备份目录（相对于local_bace_dir, eg:data/）
@@ -72,4 +72,3 @@ if __name__ == "__main__":
     for path in files:
         file_sha1.append(get_file_sha1(path))
     logging.debug("共扫描%d个文件 sha1 耗时 %f 秒" % (len(files), time.time() - start_time))
-    # get_file_sha512('ll.asd')
