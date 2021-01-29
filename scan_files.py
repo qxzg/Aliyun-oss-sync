@@ -35,13 +35,13 @@ except AssertionError:
     sys.exit(1)
 
 
-def Get_File_Sha1(file_name):
-    """计算文件的sha1
+def Get_File_sha256(file_name):
+    """计算文件的sha256
 
-    :param str file_name: 需要计算sha1的文件名
+    :param str file_name: 需要计算sha256的文件名
     """
     #start_time = time.time()
-    m = hashlib.sha1()
+    m = hashlib.sha256()
     try:
         with open(file_name, 'rb') as fobj:
             if os.path.getsize(file_name) > MaxMemoryUsageAllow:
@@ -54,7 +54,7 @@ def Get_File_Sha1(file_name):
                 m.update(fobj.read())
     except:
         logging.exception("Fail when opening the file: %s", file_name)
-    #logging.debug("分块sha1 耗时 %f 秒" % (time.time() - start_time))
+    #logging.debug("分块sha256 耗时 %f 秒" % (time.time() - start_time))
     return m.hexdigest()
 
 
@@ -86,8 +86,8 @@ if __name__ == "__main__":
     print("备份文件总数：%d\n备份文件总大小：%.2f GB" % (file_num, file_size / (1024 * 1024 * 1024)))
 """
     start_time = time.time()
-    file_sha1 = []
+    file_sha256 = []
     for path in files:
-        file_sha1.append(Get_File_Sha1(path))
-    logging.debug("共扫描%d个文件 sha1 耗时 %f 秒" % (len(files), time.time() - start_time))
+        file_sha256.append(Get_File_sha256(path))
+    logging.debug("共扫描%d个文件 sha256 耗时 %f 秒" % (len(files), time.time() - start_time))
 """
