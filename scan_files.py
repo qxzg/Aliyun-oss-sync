@@ -5,12 +5,14 @@ import sys
 import time
 import traceback
 
+import config
+
 MaxMemoryUsageAllow = (1024 * 1024) * 1024  # 在计算文件sha512时允许的最大内存消耗(MB)，提高此参数可以加快大文件的计算速度
 LogFile = "oss-sync.log"
 LogFormat = "%(asctime)s - [%(levelname)s]: %(message)s"
 
 local_bace_dir = "/mnt/"  # 本地工作目录（绝对路径, eg：/mnt/）
-backup_dirs = ["main-pool/personal/"]  # 备份目录（相对于local_bace_dir, eg:data/）
+backup_dirs = ["main-pool/personal/", "main-pool/H", "main-pool/nextcloud"]  # 备份目录（相对于local_bace_dir, eg:data/）
 
 try:
     logging.basicConfig(filename=LogFile, encoding='utf-8', level=logging.DEBUG, format=LogFormat)  # only work on python>=3.9
