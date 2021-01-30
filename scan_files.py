@@ -5,6 +5,7 @@ import sys
 import time
 import traceback
 import json
+import threading
 
 import config
 
@@ -83,12 +84,12 @@ if __name__ == "__main__":
         file_num += getfiles[1]
         file_size += getfiles[2]
     del getfiles
-    
+
     logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB" % (file_num, file_size / (1024 * 1024 * 1024)))
     logging.info("开始计算sha256")
 
-    for path in files:
-            files[path] = Get_File_sha256(path)
+    for path in files:  # TODO: 实现多线程计算sha256
+        files[path] = Get_File_sha256(path)
     with open('/root/sha256.json', 'w') as json_file:
         json.dump(files, json_file)
     logging.info("共耗时 %f 秒" % (time.time() - start_time))
