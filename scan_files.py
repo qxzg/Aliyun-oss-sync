@@ -19,20 +19,6 @@ except ValueError:
     logging.basicConfig(filename=LogFile, level=logging.DEBUG, format=LogFormat)
     logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
 
-try:
-    os.chdir(config.local_bace_dir)
-except FileNotFoundError:
-    print("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
-    logging.exception("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
-    sys.exit(1)
-try:
-    for dirs in config.backup_dirs:
-        assert os.path.isdir(dirs)
-except AssertionError:
-    print("备份目录'%s'无效，请检查设置" % dirs)
-    logging.exception("备份目录'%s'无效，请检查设置" % dirs)
-    sys.exit(1)
-
 
 def Get_File_sha256(file_name):
     """计算文件的sha256
@@ -72,6 +58,22 @@ def ListFiles(target_dir):
 
 
 if __name__ == "__main__":
+
+    try:
+        os.chdir(config.local_bace_dir)
+    except FileNotFoundError:
+        print("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
+        logging.exception("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
+        sys.exit(1)
+    try:
+        for dirs in config.backup_dirs:
+            assert os.path.isdir(dirs)
+    except AssertionError:
+        print("备份目录'%s'无效，请检查设置" % dirs)
+        logging.exception("备份目录'%s'无效，请检查设置" % dirs)
+        sys.exit(1)
+
+
     start_time = time.time()
     files = {}
     file_num = 0
