@@ -8,7 +8,7 @@ import json
 
 import config
 
-MaxMemoryUsageAllow = (1024 * 1024) * 1024  # 在计算文件sha512时允许的最大内存消耗(MB)，提高此参数可以加快大文件的计算速度
+MaxMemoryUsageAllow = (1024 * 1024) * 1024  # 在计算文件哈希值时允许一次性打开的最大文件大小(MB)，提高此参数可以加快大文件的计算速度，但是会增加内存消耗
 LogFile = "oss-sync.log"
 LogFormat = "%(asctime)s - [%(levelname)s]: %(message)s"
 
