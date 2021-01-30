@@ -20,7 +20,7 @@ except ValueError:
     logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
 
 
-def Get_File_sha256(file_name):
+def Calculate_File_sha256(file_name):
     """计算文件的sha256
 
     :param str file_name: 需要计算sha256的文件名
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     logging.info("开始计算sha256")
 
     for path in files:  # TODO: 实现多线程计算sha256
-        files[path] = Get_File_sha256(path)
+        files[path] = Calculate_File_sha256(path)
     with open('/root/sha256.json', 'w') as json_file:
         json.dump(files, json_file)
     logging.info("共耗时 %f 秒" % (time.time() - start_time))
