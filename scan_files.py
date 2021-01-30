@@ -4,15 +4,13 @@ import os
 import sys
 import time
 import traceback
+import json
 
 import config
 
 MaxMemoryUsageAllow = (1024 * 1024) * 1024  # 在计算文件sha512时允许的最大内存消耗(MB)，提高此参数可以加快大文件的计算速度
 LogFile = "oss-sync.log"
 LogFormat = "%(asctime)s - [%(levelname)s]: %(message)s"
-
-local_bace_dir = "/mnt/"  # 本地工作目录（绝对路径, eg：/mnt/）
-backup_dirs = ["main-pool/personal/", "main-pool/H", "main-pool/nextcloud"]  # 备份目录（相对于local_bace_dir, eg:data/）
 
 try:
     logging.basicConfig(filename=LogFile, encoding='utf-8', level=logging.DEBUG, format=LogFormat)  # only work on python>=3.9
@@ -21,13 +19,13 @@ except ValueError:
     logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
 
 try:
-    os.chdir(local_bace_dir)
+    os.chdir(config.local_bace_dir)
 except FileNotFoundError:
-    print("本地工作目录'%s'无效，请检查设置" % local_bace_dir)
-    logging.exception("本地工作目录'%s'无效，请检查设置" % local_bace_dir)
+    print("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
+    logging.exception("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
     sys.exit(1)
 try:
-    for dirs in backup_dirs:
+    for dirs in config.backup_dirs:
         assert os.path.isdir(dirs)
 except AssertionError:
     print("备份目录'%s'无效，请检查设置" % dirs)
@@ -73,21 +71,24 @@ def ListFiles(target_dir):
 
 
 if __name__ == "__main__":
-    files = []
+    start_time = time.time()
+    files = {}
     file_num = 0
     file_size = 0
-    for i in backup_dirs:
-        print("正在读取备份目录:" + i)
+    for i in config.backup_dirs:
+        logging.info("正在读取备份目录:" + i)
         getfiles = ListFiles(i)
-        files.append(getfiles[0])
+        for path in getfiles[0]:
+            files[path] = ""
         file_num += getfiles[1]
         file_size += getfiles[2]
     del getfiles
-    print("备份文件总数：%d\n备份文件总大小：%.2f GB" % (file_num, file_size / (1024 * 1024 * 1024)))
-"""
-    start_time = time.time()
-    file_sha256 = []
+    
+    logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB" % (file_num, file_size / (1024 * 1024 * 1024)))
+    logging.info("开始计算sha256")
+
     for path in files:
-        file_sha256.append(Get_File_sha256(path))
-    logging.debug("共扫描%d个文件 sha256 耗时 %f 秒" % (len(files), time.time() - start_time))
-"""
+            files[path] = Get_File_sha256(path)
+    with open('/root/sha256.json', 'w') as json_file:
+        json.dump(files, json_file)
+    logging.info("共耗时 %f 秒" % (time.time() - start_time))
