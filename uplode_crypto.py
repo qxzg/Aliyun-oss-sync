@@ -2,9 +2,9 @@
 # 客户端加密文档：https://help.aliyun.com/document_detail/74371.html
 # 断点续传文档：https://help.aliyun.com/document_detail/88433.html
 import os
-import sqlite3
 import oss2
 import hashlib
+import logging
 from oss2.crypto import AliKMSProvider
 import hashlib
 import config
@@ -17,11 +17,16 @@ bucket = oss2.CryptoBucket(auth, config.OssEndpoint, config.bucket_name, crypto_
 uplode_file = "oss-sync.zip"
 download_filename = 'download.zip'
 
+try:
+    logging.basicConfig(filename=LogFile, encoding='utf-8', level=logging.DEBUG, format=LogFormat)  # only work on python>=3.9
+except ValueError:
+    logging.basicConfig(filename=LogFile, level=logging.DEBUG, format=LogFormat)
+    logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
 
-def Uplode_File_Encrypted(uplode_file):
+def Uplode_File_Encrypted(local_file_name, remote_file_name):
     org_file_sha256 = Calculate_File_sha256(uplode_file)  # TODO 从json获取文件sha256
     oss2.resumable_upload(
-        bucket, uplode_file, uplode_file,
+        bucket, remote_file_name, local_file_name,
         # store=oss2.ResumableStore(root='/tmp'),
         multipart_threshold=1024*1024*50,
         part_size=1024*1024*50,
@@ -34,6 +39,12 @@ def Uplode_File_Encrypted(uplode_file):
         }
     )
 
+def Download_Decrypted_File(local_file_name, remote_file_name):
+    try:
+        result = bucket.get_object_to_file(remote_file_name, local_file_name)
+    except:
+        logging.exception("无法从oss下载文件" + remote_file_name)
+    return result
 
 def Verify_Remote_File_Integrity(remote_file):
     result = bucket.get_object(remote_file)
@@ -48,7 +59,7 @@ def Verify_Remote_File_Integrity(remote_file):
 
 
 if __name__ == "__main__":
-    pass
+    Uplode_File_Encrypted("sha256.json", )
     #Uplode_File_Encrypted(uplode_file)
     # 下载OSS文件到本地文件。
     #result = bucket.get_object_to_file(uplode_file, download_filename)
