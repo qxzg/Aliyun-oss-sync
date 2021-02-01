@@ -68,6 +68,15 @@ class Oss_Operation(object):
         )
 
     def Download_Decrypted_File(self, local_file_name, remote_file_name):
+        """从OSS下载并解密文件
+
+        Args:
+            local_file_name [str]
+            remote_file_name [str]
+
+        Returns:
+            [type]: [description]
+        """
         try:
             result = self.__bucket.get_object_to_file(remote_file_name, local_file_name)
         except:
@@ -91,3 +100,4 @@ class Oss_Operation(object):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     r_oss = Oss_Operation()
+    r_oss.Uplode_File_Encrypted("sha256.json", "sha256.json")

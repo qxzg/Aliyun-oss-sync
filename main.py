@@ -8,14 +8,13 @@ import time
 
 import config
 import oss_sync_libs
-"""
+
 try:
     logging.basicConfig(filename=config.LogFile, encoding='utf-8', level=logging.DEBUG, format=config.LogFormat)  # only work on python>=3.9
 except ValueError:
     logging.basicConfig(filename=config.LogFile, level=logging.DEBUG, format=config.LogFormat)
     logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
-"""
-logging.basicConfig(level=logging.DEBUG, format=config.LogFormat)
+
 
 def chaek_dir_configs():
     # 检查各参数合法性
@@ -52,10 +51,11 @@ def chaek_dir_configs():
 if __name__ == "__main__":
 
     chaek_dir_configs()
-else:
     local_json_filename = config.temp_dir + "sha256_local.json"
-######################################################################
+    remote_json_filename = config.temp_dir + "sha256_remote.json"
 
+######################################################################
+else:
     local_files_sha256 = {}  # 本地文件与sha256对应表
 # 扫描备份目录，获取文件列表
     start_time = time.time()
@@ -85,9 +85,11 @@ else:
 
 ######################################################################
 
+    oss = oss_sync_libs.Oss_Operation()
+# 获取远程文件json
+    oss.Download_Decrypted_File(remote_json_filename, "sha256a.json")
     remote_files_sha256 = {}  # 远程文件与sha256对应表
     sha256_to_remote_file = {}  # sha256与远程文件对应表
-# 获取远程文件json
 
     for file, sha256 in remote_files_sha256.items():
         sha256_to_remote_file[sha256] = file
