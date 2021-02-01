@@ -17,9 +17,9 @@ except ValueError:
     logging.basicConfig(filename=config.LogFile, level=logging.DEBUG, format=config.LogFormat)
     logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
 """
-MaxMemoryUsageAllow = (1024 * 1024) * 1024  # 在计算文件哈希值时允许一次性打开的最大文件大小(MB)，提高此参数可以加快大文件的计算速度，但是会增加内存消耗
 
-def Calculate_File_sha256(file_name):
+
+def Calculate_Local_File_sha256(file_name):
     """计算文件的sha256
 
     :param str file_name: 需要计算sha256的文件名
@@ -28,9 +28,9 @@ def Calculate_File_sha256(file_name):
     m = hashlib.sha256()
     try:
         with open(file_name, 'rb') as fobj:
-            if os.path.getsize(file_name) > MaxMemoryUsageAllow:
+            if os.path.getsize(file_name) > config.MaxMemoryUsageAllow:
                 while True:
-                    data = fobj.read(MaxMemoryUsageAllow)
+                    data = fobj.read(config.MaxMemoryUsageAllow)
                     if not data:
                         break
                     m.update(data)
@@ -52,7 +52,7 @@ class Oss_Operation(object):
         self.__bucket_name = config.bucket_name
 
     def Uplode_File_Encrypted(self, local_file_name, remote_file_name):
-        org_file_sha256 = Calculate_File_sha256(local_file_name)  # TODO 从json获取文件sha256
+        org_file_sha256 = Calculate_Local_File_sha256(local_file_name)  # TODO 从json获取文件sha256
         oss2.resumable_upload(
             self.__bucket, remote_file_name, local_file_name,
             # store=oss2.ResumableStore(root='/tmp'),
