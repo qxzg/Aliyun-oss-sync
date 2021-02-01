@@ -9,6 +9,8 @@ import time
 import config
 import oss_sync_libs
 
+from memory_profiler import profile
+
 try:
     logging.basicConfig(filename=config.LogFile, encoding='utf-8', level=logging.DEBUG, format=config.LogFormat)  # only work on python>=3.9
 except ValueError:
@@ -31,6 +33,10 @@ def chaek_dir_configs():
         if path[0] == '/' or path[-1] != '/':
             logging.critical("本地备份目录(backup_dirs)必须为带有后导/的格式")
             raise Exception("本地备份目录(backup_dirs)必须为带有后导/的格式")
+    for path in config.backup_exclude:  # TODO 检查类型是否为元组
+        if not path.startswith(config.local_bace_dir):
+            logging.critical("备份排除目录(backup_exclude_dirs)必须为local_bace_dir下的绝对路径")
+            raise Exception("备份排除目录(backup_exclude_dirs)必须为local_bace_dir下的绝对路径")
     # 检查目录是否存在
     try:
         os.chdir(config.local_bace_dir)
@@ -47,6 +53,17 @@ def chaek_dir_configs():
         logging.info("临时文件夹%s不存在")
         os.makedirs(config.temp_dir)
 
+# @profile()
+def qweasd():
+    #oss = oss_sync_libs.Oss_Operation()
+    # 获取远程文件json
+    #oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
+    with open(remote_json_filename, 'r') as fobj:
+        remote_files_sha256 = json.load(fobj)
+    sha256_to_remote_file = {}  # sha256与远程文件对应表
+    for file, sha256 in remote_files_sha256.items():
+        sha256_to_remote_file[sha256] = file
+    return
 
 if __name__ == "__main__":
 
@@ -55,22 +72,32 @@ if __name__ == "__main__":
     remote_json_filename = config.temp_dir + "sha256_remote.json"
 
 ######################################################################
-else:
+    # Debuging:
+    # qweasd()
+    # Debuging End
+
+# else:
     local_files_sha256 = {}  # 本地文件与sha256对应表
 # 扫描备份目录，获取文件列表
     start_time = time.time()
-    file_num = 0
-    file_size = 0
+    totle_file_num = 0
+    totle_file_size = 0
+else:
     for backup_dirs in config.backup_dirs:
         logging.info("正在读取备份目录:" + backup_dirs)
         for root, dirs, files in os.walk(os.path.abspath(backup_dirs)):
+            if root.startswith(config.backup_exclude): continue  # 排除特定文件夹
             for file in files:
-                absolut_path = os.path.join(root, file)  # 使用绝对路径
+                absolut_path = os.path.join(root, file)  # 转换为绝对路径
+                file_size = os.path.getsize(absolut_path)
+                if file_size == 0:
+                    continue
                 local_files_sha256[absolut_path] = ""
-                file_num += 1
-                file_size += os.path.getsize(absolut_path)
-    logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB" % (file_num, file_size / (1024 * 1024 * 1024)))
+                totle_file_num += 1
+                totle_file_size += file_size
+    logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB" % (totle_file_num, totle_file_size / (1024 * 1024 * 1024)))
 # 计算备份文件的sha256
+# else:
     logging.info("开始计算sha256")
     for path in local_files_sha256:  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
         local_files_sha256[path] = oss_sync_libs.Calculate_Local_File_sha256(path)
