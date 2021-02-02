@@ -1,6 +1,6 @@
 AccessKeyId = ""
 AccessKeySecret = ""
-OssEndpoint = ""
+OssEndpoint = "https://oss-cn-hangzhou.aliyuncs.com"
 CMKID = ""
 KMSRegion = ""
 bucket_name = ""

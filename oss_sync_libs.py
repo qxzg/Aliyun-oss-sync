@@ -44,6 +44,9 @@ def Calculate_Local_File_sha256(file_name):
 class Oss_Operation(object):
 
     def __init__(self):
+        if not config.OssEndpoint.startswith("https://"):
+            logging.critical("OSS Endpoint必须以https://开头")
+            raise Exception("OSS Endpoint必须以https://开头")
         self.__bucket = oss2.CryptoBucket(
             oss2.Auth(config.AccessKeyId, config.AccessKeySecret),
             config.OssEndpoint, config.bucket_name,
@@ -51,9 +54,16 @@ class Oss_Operation(object):
         )
         self.__bucket_name = config.bucket_name
 
-    def Uplode_File_Encrypted(self, local_file_name, remote_file_name):
+    def Uplode_File_Encrypted(self, local_file_name, remote_file_name, storage_class = config.default_storage_class):
+        """使用KMS加密并上传文件
+
+        Args:
+            local_file_name (str): 本地文件路径
+            remote_file_name (str): 远程文件路径
+            storage_class (str, optional): Object的存储类型，取值：Standard、IA、Archive和ColdArchive。默认值可在config中配置
+        """
         org_file_sha256 = Calculate_Local_File_sha256(local_file_name)  # TODO 从json获取文件sha256
-        oss2.resumable_upload(
+        result = oss2.resumable_upload(
             self.__bucket, remote_file_name, local_file_name,
             # store=oss2.ResumableStore(root='/tmp'),
             multipart_threshold=1024*1024*50,
@@ -62,20 +72,18 @@ class Oss_Operation(object):
             headers={
                 "content-length": str(os.path.getsize(local_file_name)),
                 "x-oss-server-side-encryption": "KMS",
-                "x-oss-storage-class": config.storage_class,
+                "x-oss-storage-class": storage_class,
                 "x-oss-meta-sha256": org_file_sha256
             }
         )
+        return result
 
     def Download_Decrypted_File(self, local_file_name, remote_file_name):
         """从OSS下载并解密文件
 
         Args:
-            local_file_name [str]
-            remote_file_name [str]
-
-        Returns:
-            [type]: [description]
+            local_file_name (str)
+            remote_file_name (str)
         """
         try:
             result = self.__bucket.get_object_to_file(remote_file_name, local_file_name)
