@@ -62,7 +62,7 @@ class Oss_Operation(object):
             headers={
                 "content-length": str(os.path.getsize(local_file_name)),
                 "x-oss-server-side-encryption": "KMS",
-                "x-oss-storage-class": "IA",
+                "x-oss-storage-class": config.storage_class,
                 "x-oss-meta-sha256": org_file_sha256
             }
         )

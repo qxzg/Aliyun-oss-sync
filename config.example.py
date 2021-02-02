@@ -4,6 +4,7 @@ OssEndpoint = ""
 CMKID = ""
 KMSRegion = ""
 bucket_name = ""
+storage_class = "IA" # Object的存储类型，取值：Standard、IA、Archive和ColdArchive
 
 local_bace_dir = "/mnt/"  # 本地工作目录（绝对路径, eg：/mnt/）
 remote_bace_dir = "nas-backup/"
