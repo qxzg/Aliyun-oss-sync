@@ -112,11 +112,11 @@ else:
 
 ######################################################################
 
-    oss = oss_sync_libs.Oss_Operation()
-# 获取远程文件json
-    oss.Download_Decrypted_File(remote_json_filename, "sha256a.json")
-    remote_files_sha256 = {}  # 远程文件与sha256对应表
+    #oss = oss_sync_libs.Oss_Operation()
+    # 获取远程文件json
+    #oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
+    with open(remote_json_filename, 'r') as fobj:
+        remote_files_sha256 = json.load(fobj)
     sha256_to_remote_file = {}  # sha256与远程文件对应表
-
     for file, sha256 in remote_files_sha256.items():
         sha256_to_remote_file[sha256] = file
