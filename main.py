@@ -94,15 +94,18 @@ if __name__ == "__main__":
         if not item in local_files_sha256:
             delete_list.append(config.remote_bace_dir + item)
 
-    oss.Copy_remote_files(copy_list)
-    oss.Delete_Remote_files(delete_list)
-    for file in uplode_list:
-        try:
-            oss.Uplode_File_Encrypted(file, config.remote_bace_dir + file, storage_class=config.default_storage_class, file_sha256=local_files_sha256[file])
-        except FileNotFoundError:
-            logging.warning("上传时无法找到文件%s" % file)
-            del(local_files_sha256[file])
-            uplode_list.remove(file)
+    if len(copy_list) != 0:
+        oss.Copy_remote_files(copy_list)
+    if len(delete_list) != 0:
+        oss.Delete_Remote_files(delete_list)
+    if len(uplode_list) != 0:
+        for file in uplode_list:
+            try:
+                oss.Uplode_File_Encrypted(file, config.remote_bace_dir + file, storage_class=config.default_storage_class, file_sha256=local_files_sha256[file])
+            except FileNotFoundError:
+                logging.warning("上传时无法找到文件%s" % file)
+                del(local_files_sha256[file])
+                uplode_list.remove(file)
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)
     oss.Uplode_File_Encrypted(local_json_filename, 'sha256.json', storage_class='Standard')
