@@ -20,11 +20,14 @@ except ValueError:
 
 
 def Calculate_Local_File_sha256(file_name):
-    """计算文件的sha256
+    """计算sha256
 
-    :param str file_name: 需要计算sha256的文件名
+    Args:
+        file_name (str): 需要计算sha256的文件名
+
+    Returns:
+        str: 文件的sha256
     """
-    #start_time = time.time()
     m = hashlib.sha256()
     try:
         with open(file_name, 'rb') as fobj:
@@ -37,8 +40,8 @@ def Calculate_Local_File_sha256(file_name):
             else:
                 m.update(fobj.read())
     except:
-        logging.exception("Fail when opening the file: %s", file_name)
-    #logging.debug("分块sha256 耗时 %f 秒" % (time.time() - start_time))
+        logging.exception("[Calculate_Local_File_sha256] Fail to open the file: %s", file_name)
+        return False
     return m.hexdigest()
 
 class Oss_Operation(object):

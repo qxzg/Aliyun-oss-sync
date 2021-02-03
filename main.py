@@ -112,7 +112,11 @@ if __name__ == "__main__":
 #else:
     logging.info("开始计算sha256")
     for path in local_files_sha256:  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
-        local_files_sha256[path] = oss_sync_libs.Calculate_Local_File_sha256(path)
+        sha256 = oss_sync_libs.Calculate_Local_File_sha256(path)
+        if sha256 != False:
+            local_files_sha256[path] = sha256
+        else:
+            del(local_files_sha256[path])
     try:
         with open(local_json_filename, 'w') as json_fileobj:
             json.dump(local_files_sha256, json_fileobj)
