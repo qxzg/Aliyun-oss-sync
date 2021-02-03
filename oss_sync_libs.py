@@ -57,15 +57,17 @@ class Oss_Operation(object):
         )
         self.__bucket_name = config.bucket_name
 
-    def Uplode_File_Encrypted(self, local_file_name, remote_file_name, storage_class = config.default_storage_class):
+    def Uplode_File_Encrypted(self, local_file_name, remote_file_name, storage_class = config.default_storage_class, file_sha256 = '-1'):
         """使用KMS加密并上传文件
 
         Args:
             local_file_name (str): 本地文件路径
             remote_file_name (str): 远程文件路径
-            storage_class (str, optional): Object的存储类型，取值：Standard、IA、Archive和ColdArchive。默认值可在config中配置
+            storage_class (str, 可选): Object的存储类型，取值：Standard、IA、Archive和ColdArchive。默认值可在config中配置
+            file_sha256 (str, 可选): 如不提供将会自动计算本地文件sha256
         """
-        org_file_sha256 = Calculate_Local_File_sha256(local_file_name)  # TODO 从json获取文件sha256
+        if file_sha256 == '-1':
+            file_sha256 = Calculate_Local_File_sha256(local_file_name)
         result = oss2.resumable_upload(
             self.__bucket, remote_file_name, local_file_name,
             # store=oss2.ResumableStore(root='/tmp'),
@@ -76,7 +78,7 @@ class Oss_Operation(object):
                 "content-length": str(os.path.getsize(local_file_name)),
                 "x-oss-server-side-encryption": "KMS",
                 "x-oss-storage-class": storage_class,
-                "x-oss-meta-sha256": org_file_sha256
+                "x-oss-meta-sha256": file_sha256
             }
         )
         return result
