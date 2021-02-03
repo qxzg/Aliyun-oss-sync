@@ -56,6 +56,7 @@ class Oss_Operation(object):
             crypto_provider=AliKMSProvider(config.AccessKeyId, config.AccessKeySecret, config.KMSRegion, config.CMKID)
         )
         self.__bucket_name = config.bucket_name
+        self.__remote_bace_dir = config.remote_bace_dir
 
     def Uplode_File_Encrypted(self, local_file_name, remote_file_name, storage_class = config.default_storage_class, file_sha256 = '-1'):
         """使用KMS加密并上传文件
@@ -95,6 +96,28 @@ class Oss_Operation(object):
         except:
             logging.exception("无法从oss下载文件" + remote_file_name)
         return result
+
+    def Delete_Remote_files(self, delete_list):
+        """删除OSS中的文件
+
+        Args:
+            delete_list (list): 需要删除的文件列表，绝对对路径
+
+        Returns:
+            list: [description]
+        """
+        for i in range(0, (len(delete_list) // 1000) + 1):
+            self.__bucket.batch_delete_objects(delete_list[i * 1000:(i * 1000) + 999])
+        return
+
+    def Copy_remote_files(self, copy_list):
+        """复制远程文件
+
+        Args:
+            copy_list (dits): Key:目标文件, velue:源文件
+        """
+        for dst_obj, src_obj in copy_list.items():
+            self.__bucket.copy_object(self.__bucket_name, src_obj, dst_obj)
 
     def Verify_Remote_File_Integrity(self, remote_file):
         result = self.__bucket.get_object(remote_file)
