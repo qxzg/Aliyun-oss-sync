@@ -16,53 +16,14 @@ except ValueError:
     logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
 
 
-def chaek_dir_configs():
-    # 检查各参数合法性
-    if config.local_bace_dir[0] != '/' or config.local_bace_dir[-1] != '/':
-        logging.critical("本地工作目录(local_bace_dir)必须为带有前导和后导/的格式")
-        raise Exception("本地工作目录(local_bace_dir)必须为带有前导和后导/的格式")
-    if config.temp_dir[0] != '/' or config.temp_dir[-1] != '/':
-        logging.critical("临时目录(temp_dir)必须为带有前导和后导/的格式")
-        raise Exception("临时目录(temp_dir)必须为带有前导和后导/的格式")
-    if config.remote_bace_dir[0] == '/' or config.remote_bace_dir[-1] != '/':
-        logging.critical("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
-        raise Exception("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
-    for path in config.backup_dirs:
-        if path[0] == '/' or path[-1] != '/':
-            logging.critical("本地备份目录(backup_dirs)必须为带有后导/的格式")
-            raise Exception("本地备份目录(backup_dirs)必须为带有后导/的格式")
-    if type(config.backup_exclude) != tuple:
-        logging.critical("备份排除目录(backup_exclude_dirs)必须为tuple类型")
-        raise Exception("本备份排除目录(backup_exclude_dirs)必须为tuple类型")
-    for path in config.backup_exclude:
-        if path[0] == '/':
-            logging.critical("备份排除目录(backup_exclude_dirs)必须为不带前导/的相对路径")
-            raise Exception("本备份排除目录(backup_exclude_dirs)必须为不带前导/的相对路径")
-    # 检查目录是否存在
-    try:
-        os.chdir(config.local_bace_dir)
-    except FileNotFoundError:
-        logging.exception("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
-        raise Exception("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
-    try:
-        for dirs in config.backup_dirs:
-            assert os.path.isdir(dirs)
-    except FileNotFoundError:
-        logging.exception("备份目录'%s'无效，请检查设置" % dirs)
-        raise Exception("备份目录'%s'无效，请检查设置" % dirs)
-    if not os.path.exists(config.temp_dir):
-        logging.info("临时文件夹%s不存在")
-        os.makedirs(config.temp_dir)
-
-
 if __name__ == "__main__":
 
-    chaek_dir_configs()
+    oss_sync_libs.chaek_configs()
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
 
 ######################################################################
-#else
+# else
     local_files_sha256 = {}  # 本地文件与sha256对应表
 # 扫描备份目录，获取文件列表
     start_time = time.time()
