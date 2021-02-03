@@ -9,12 +9,10 @@ import time
 import config
 import oss_sync_libs
 
-from memory_profiler import profile
-
 try:
-    logging.basicConfig(filename=config.LogFile, encoding='utf-8', level=logging.DEBUG, format=config.LogFormat)  # only work on python>=3.9
+    logging.basicConfig(filename=config.LogFile, encoding='utf-8', level=config.LogLevel, format=config.LogFormat)  # only work on python>=3.9
 except ValueError:
-    logging.basicConfig(filename=config.LogFile, level=logging.DEBUG, format=config.LogFormat)
+    logging.basicConfig(filename=config.LogFile, level=config.LogLevel, format=config.LogFormat)
     logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
 
 
@@ -56,27 +54,6 @@ def chaek_dir_configs():
         logging.info("临时文件夹%s不存在")
         os.makedirs(config.temp_dir)
 
-# @profile()
-
-
-def dev():
-    # oss = oss_sync_libs.Oss_Operation()
-    # 获取远程文件json
-    # oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
-    with open(remote_json_filename, 'r') as fobj:
-        remote_files_sha256 = json.load(fobj)
-    sha256_to_remote_file = {}  # sha256与远程文件对应表
-    for file, sha256 in remote_files_sha256.items():
-        sha256_to_remote_file[sha256] = file
-
-    copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
-    delete_list = []  # 需要删除的文件列表
-    uplode_list = []  # 需要上传的文件列表
-
-    for tiem, sha256 in local_files_sha256.items():
-        pass
-    return
-
 
 if __name__ == "__main__":
 
@@ -85,11 +62,7 @@ if __name__ == "__main__":
     remote_json_filename = config.temp_dir + "sha256_remote.json"
 
 ######################################################################
-    # Debuging:
-    # dev()
-    # Debuging End
-
-# else:
+#else
     local_files_sha256 = {}  # 本地文件与sha256对应表
 # 扫描备份目录，获取文件列表
     start_time = time.time()
@@ -99,17 +72,19 @@ if __name__ == "__main__":
     for backup_dirs in config.backup_dirs:
         logging.info("正在读取备份目录:" + backup_dirs)
         for root, dirs, files in os.walk(backup_dirs):
-            if root.startswith(config.backup_exclude): continue  # 排除特定文件夹
+            if root.startswith(config.backup_exclude):
+                continue  # 排除特定文件夹
             for file in files:
                 relative_path = os.path.join(root, file)  # 合成相对于local_bace_dir的路径
                 file_size = os.path.getsize(relative_path)
-                if file_size == 0: continue # 排除文件大小为0的空文件
+                if file_size == 0:
+                    continue  # 排除文件大小为0的空文件
                 local_files_sha256[relative_path] = ""
                 totle_file_num += 1
                 totle_file_size += file_size
     logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB" % (totle_file_num, totle_file_size / (1024 * 1024 * 1024)))
 # 计算备份文件的sha256
-#else:
+# else:
     logging.info("开始计算sha256")
     for path in local_files_sha256:  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
         sha256 = oss_sync_libs.Calculate_Local_File_sha256(path)
@@ -127,12 +102,33 @@ if __name__ == "__main__":
             json.dump(local_files_sha256, json_fileobj)
 
 ######################################################################
-else:
-    # oss = oss_sync_libs.Oss_Operation()
+# else:
+    oss = oss_sync_libs.Oss_Operation()
     # 获取远程文件json
-    # oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
+    oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
     with open(remote_json_filename, 'r') as fobj:
         remote_files_sha256 = json.load(fobj)
     sha256_to_remote_file = {}  # sha256与远程文件对应表
     for file, sha256 in remote_files_sha256.items():
         sha256_to_remote_file[sha256] = file
+
+    copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
+    delete_list = []  # 需要删除的文件列表
+    uplode_list = []  # 需要上传的文件列表
+    with open(local_json_filename, 'r') as fobj:  # Dev!!
+        local_files_sha256 = json.load(fobj)
+    for item, sha256 in local_files_sha256.items():
+        if item in remote_files_sha256:
+            if remote_files_sha256[item] == sha256:
+                continue
+            elif sha256 in sha256_to_remote_file:
+                copy_list[config.remote_bace_dir + item] = config.remote_bace_dir + sha256_to_remote_file[sha256]
+            else:
+                uplode_list.append(item)
+        elif sha256 in sha256_to_remote_file:
+            copy_list[config.remote_bace_dir + item] = config.remote_bace_dir + sha256_to_remote_file[sha256]
+        else:
+            uplode_list.append(item)
+    for item, sha256 in remote_files_sha256.items():
+        if not item in local_files_sha256:
+            delete_list.append(config.remote_bace_dir + item)
