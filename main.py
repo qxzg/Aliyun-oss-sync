@@ -117,6 +117,7 @@ if __name__ == "__main__":
     uplode_list = []  # 需要上传的文件列表
     with open(local_json_filename, 'r') as fobj:  # Dev!!
         local_files_sha256 = json.load(fobj)
+
     for item, sha256 in local_files_sha256.items():
         if item in remote_files_sha256:
             if remote_files_sha256[item] == sha256:
@@ -132,3 +133,19 @@ if __name__ == "__main__":
     for item, sha256 in remote_files_sha256.items():
         if not item in local_files_sha256:
             delete_list.append(config.remote_bace_dir + item)
+
+    oss.Copy_remote_files(copy_list)
+    oss.Delete_Remote_files(delete_list)
+    for file in uplode_list:
+        try:
+            oss.Uplode_File_Encrypted(file, config.remote_bace_dir + file, storage_class=config.default_storage_class, file_sha256=local_files_sha256[file])
+        except FileNotFoundError:
+            logging.warning("上传时无法找到文件%s" % file)
+            del(local_files_sha256[file])
+            uplode_list.remove(file)
+    with open(local_json_filename, 'w') as fobj:
+        json.dump(local_files_sha256, fobj)
+    oss.Uplode_File_Encrypted(local_json_filename, 'sha256.json', storage_class='Standard')
+    logging.info("copy_list:\n" + copy_list)
+    logging.info("delete_list:\n" + delete_list)
+    logging.info("uplode_list:\n" + uplode_list)

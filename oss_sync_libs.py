@@ -44,6 +44,7 @@ def Calculate_Local_File_sha256(file_name):
         return False
     return m.hexdigest()
 
+
 class Oss_Operation(object):
 
     def __init__(self):
@@ -58,7 +59,7 @@ class Oss_Operation(object):
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
 
-    def Uplode_File_Encrypted(self, local_file_name, remote_file_name, storage_class = config.default_storage_class, file_sha256 = '-1'):
+    def Uplode_File_Encrypted(self, local_file_name, remote_file_name, storage_class='Standard', file_sha256='-1'):
         """使用KMS加密并上传文件
 
         Args:
