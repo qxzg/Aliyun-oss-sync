@@ -49,7 +49,7 @@ def chaek_dir_configs():
     try:
         for dirs in config.backup_dirs:
             assert os.path.isdir(dirs)
-    except AssertionError:
+    except FileNotFoundError:
         logging.exception("备份目录'%s'无效，请检查设置" % dirs)
         raise Exception("备份目录'%s'无效，请检查设置" % dirs)
     if not os.path.exists(config.temp_dir):
