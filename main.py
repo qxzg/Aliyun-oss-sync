@@ -93,7 +93,7 @@ if __name__ == "__main__":
     for item, sha256 in remote_files_sha256.items():
         if not item in local_files_sha256:
             delete_list.append(config.remote_bace_dir + item)
-
+#TODO log列表的长度，输出标记
     if len(copy_list) != 0:
         oss.Copy_remote_files(copy_list)
     if len(delete_list) != 0:
@@ -109,6 +109,6 @@ if __name__ == "__main__":
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)
     oss.Uplode_File_Encrypted(local_json_filename, 'sha256.json', storage_class='Standard')
-    logging.info("copy_list:\n" + copy_list)
+    logging.info("copy_list:\n" + str(copy_list))
     logging.info("delete_list:\n" + delete_list)
     logging.info("uplode_list:\n" + uplode_list)
