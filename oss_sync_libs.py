@@ -9,13 +9,11 @@ import oss2
 from oss2.crypto import AliKMSProvider
 
 import config
-"""
+
 try:
-    logging.basicConfig(filename=config.LogFile, encoding='utf-8', level=logging.DEBUG, format=config.LogFormat)  # only work on python>=3.9
+    logging.basicConfig(filename=config.LogFile, encoding='utf-8', level=config.LogLevel, format=config.LogFormat)  # only work on python>=3.9
 except ValueError:
-    logging.basicConfig(filename=config.LogFile, level=logging.DEBUG, format=config.LogFormat)
-    logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
-"""
+    logging.basicConfig(filename=config.LogFile, level=config.LogLevel, format=config.LogFormat)
 
 
 def Calculate_Local_File_sha256(file_name):
@@ -50,6 +48,7 @@ class Oss_Operation(object):
         if not config.OssEndpoint.startswith("https://"):
             logging.critical("OSS Endpoint必须以https://开头")
             raise Exception("OSS Endpoint必须以https://开头")
+        oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
         self.__bucket = oss2.CryptoBucket(
             oss2.Auth(config.AccessKeyId, config.AccessKeySecret),
             config.OssEndpoint, config.bucket_name,
@@ -58,7 +57,7 @@ class Oss_Operation(object):
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
 
-    def Uplode_File_Encrypted(self, local_file_name, remote_file_name, storage_class='Standard', file_sha256='-1'):
+    def Uplode_File_Encrypted(self, local_file_name, remote_file_name, storage_class='Standard', file_sha256=None):
         """使用KMS加密并上传文件
 
         Args:
@@ -67,7 +66,7 @@ class Oss_Operation(object):
             storage_class (str, 可选): Object的存储类型，取值：Standard、IA、Archive和ColdArchive。默认值可在config中配置
             file_sha256 (str, 可选): 如不提供将会自动计算本地文件sha256
         """
-        if file_sha256 == '-1':
+        if not file_sha256:
             file_sha256 = Calculate_Local_File_sha256(local_file_name)
         result = oss2.resumable_upload(
             self.__bucket, remote_file_name, local_file_name,

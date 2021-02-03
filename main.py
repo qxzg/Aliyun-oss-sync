@@ -13,7 +13,6 @@ try:
     logging.basicConfig(filename=config.LogFile, encoding='utf-8', level=config.LogLevel, format=config.LogFormat)  # only work on python>=3.9
 except ValueError:
     logging.basicConfig(filename=config.LogFile, level=config.LogLevel, format=config.LogFormat)
-    logging.warning("Python版本小于3.9，logging将不会使用encoding参数")
 
 
 if __name__ == "__main__":
