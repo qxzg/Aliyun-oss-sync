@@ -93,7 +93,7 @@ if __name__ == "__main__":
     for item, sha256 in remote_files_sha256.items():
         if not item in local_files_sha256:
             delete_list.append(config.remote_bace_dir + item)
-#TODO log列表的长度，输出标记
+    logging.info("开始同步远程文件")
     if len(copy_list) != 0:
         oss.Copy_remote_files(copy_list)
     if len(delete_list) != 0:
