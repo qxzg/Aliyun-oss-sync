@@ -55,6 +55,7 @@ class Oss_Operation(object):
             config.OssEndpoint, config.bucket_name,
             crypto_provider=AliKMSProvider(config.AccessKeyId, config.AccessKeySecret, config.KMSRegion, config.CMKID)
         )
+        self.__MAX_RETRIES = 3
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
 
@@ -69,19 +70,30 @@ class Oss_Operation(object):
         """
         if not file_sha256:
             file_sha256 = Calculate_Local_File_sha256(local_file_name)
-        result = oss2.resumable_upload(
-            self.__bucket, remote_file_name, local_file_name,
-            # store=oss2.ResumableStore(root='/tmp'),
-            multipart_threshold=1024*1024*50,
-            part_size=1024*1024*50,
-            num_threads=4,
-            headers={
-                "content-length": str(os.path.getsize(local_file_name)),
-                "x-oss-server-side-encryption": "KMS",
-                "x-oss-storage-class": storage_class,
-                "x-oss-meta-sha256": file_sha256
-            }
-        )
+        retry_count = 0
+        while True:
+            try:
+                retry_count += 1
+                result = oss2.resumable_upload(
+                    self.__bucket, remote_file_name, local_file_name,
+                    # store=oss2.ResumableStore(root='/tmp'),
+                    multipart_threshold=1024*1024*50,
+                    part_size=1024*1024*50,
+                    num_threads=4,
+                    headers={
+                        "content-length": str(os.path.getsize(local_file_name)),
+                        "x-oss-server-side-encryption": "KMS",
+                        "x-oss-storage-class": storage_class,
+                        "x-oss-meta-sha256": file_sha256
+                    }
+                )
+                break
+            except oss2.exceptions.ClientError:
+                logging.exception("Uplode_File_Encrypted error, retrying time %d" % retry_count)
+                time.sleep(retry_count)
+                if retry_count >= self.__MAX_RETRIES:
+                    logging.exception("[Uplode_File_Encrypted] Error")
+                    raise oss2.exceptions.ClientError
         return result
 
     def Download_Decrypted_File(self, local_file_name, remote_file_name):
@@ -91,10 +103,21 @@ class Oss_Operation(object):
             local_file_name (str)
             remote_file_name (str)
         """
-        try:
-            result = self.__bucket.get_object_to_file(remote_file_name, local_file_name)
-        except:
-            logging.exception("无法从oss下载文件" + remote_file_name)
+        retry_count = 0
+        while True:
+            try:
+                retry_count += 1
+                result = self.__bucket.get_object_to_file(remote_file_name, local_file_name)
+                break
+            except oss2.exceptions.ClientError:
+                logging.exception("Download_Decrypted_File error, retrying time %d" % retry_count)
+                time.sleep(retry_count)
+                if retry_count >= self.__MAX_RETRIES:
+                    logging.exception("[Uplode_File_Encrypted] Error")
+                    raise Exception
+            except oss2.exceptions.NoSuchKey:
+                logging.exception("无法从oss下载文件" + remote_file_name)
+                raise oss2.exceptions.NoSuchKey
         return result
 
     def Delete_Remote_files(self, delete_list):
@@ -120,16 +143,24 @@ class Oss_Operation(object):
             self.__bucket.copy_object(self.__bucket_name, src_obj, dst_obj)
 
     def Verify_Remote_File_Integrity(self, remote_file):
-        result = self.__bucket.get_object(remote_file)
+        retry_count = 0
+        while True:
+            try:
+                retry_count += 1
+                result = self.__bucket.get_object(remote_file)
+                break
+            except oss2.exceptions.ClientError:
+                logging.exception("Verify_Remote_File_Integrity error, retrying time %d" % retry_count)
+                time.sleep(retry_count)
+                if retry_count >= self.__MAX_RETRIES:
+                    logging.exception("[Verify_Remote_File_Integrity] Error")
+                    raise oss2.exceptions.ClientError
         sha256 = hashlib.sha256()
         for chunk in result:
             sha256.update(chunk)
-        # print(result.headers)
         if sha256.hexdigest() == result.headers['x-oss-meta-sha256'].lower():
-            print("校验通过")
             return True
         else:
-            print("数据不匹配")
             return False
 
 
@@ -178,6 +209,5 @@ def chaek_configs():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
     r_oss = Oss_Operation()
     r_oss.Uplode_File_Encrypted("sha256.json", "sha256.json")
