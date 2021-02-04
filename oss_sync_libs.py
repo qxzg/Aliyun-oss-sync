@@ -5,6 +5,7 @@ import logging
 import os
 import time
 
+import crcmod._crcfunext  # https://help.aliyun.com/document_detail/85288.html#h2-url-5
 import oss2
 from oss2.crypto import AliKMSProvider
 
