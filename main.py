@@ -20,6 +20,7 @@ if __name__ == "__main__":
     oss_sync_libs.chaek_configs()
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
+    oss = oss_sync_libs.Oss_Operation()
 
 ######################################################################
 # else
@@ -63,7 +64,6 @@ if __name__ == "__main__":
 
 ######################################################################
 # else:
-    oss = oss_sync_libs.Oss_Operation()
     # 获取远程文件json
     oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
     with open(remote_json_filename, 'r') as fobj:
