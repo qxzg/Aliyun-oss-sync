@@ -57,7 +57,7 @@ if __name__ == "__main__":
 # else:
     copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
     uplode_list = []  # 需要上传的文件列表
-    logging.info("开始计算sha256")
+    logging.info("开始上传文件")
     for path in local_files_sha256:  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
         sha256 = oss_sync_libs.Calculate_Local_File_sha256(path)
         if sha256 == False:
