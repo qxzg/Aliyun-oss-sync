@@ -52,10 +52,10 @@ if __name__ == "__main__":
                     oss_waste_size += oss_block_size - file_size
     totle_file_size = totle_file_size / (1024 * 1024 * 1024)
     oss_waste_size = oss_waste_size / (1024 * 1024 * 1024)
-    logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB" %
-                 (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size))
-    print("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB" %
-          (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size))
+    logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB\n存储类型%s" %
+                 (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size, config.default_storage_class))
+    print("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB\n存储类型%s" %
+          (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size, config.default_storage_class))
     if str(input("确认继续请输入Y，否则输入N：")) != "Y":
         exit()
 
