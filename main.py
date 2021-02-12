@@ -44,6 +44,9 @@ if __name__ == "__main__":
                 totle_file_num += 1
                 totle_file_size += file_size
     logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB" % (totle_file_num, totle_file_size / (1024 * 1024 * 1024)))
+    print("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB" % (totle_file_num, totle_file_size / (1024 * 1024 * 1024)))
+    if str(input("确认继续请输入Y，否则输入N")) != "Y":
+        exit()
 
     # 获取远程文件json
     oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
