@@ -76,7 +76,7 @@ class Oss_Operation(object):
                 retry_count += 1
                 result = oss2.resumable_upload(
                     self.__bucket, remote_file_name, local_file_name,
-                    # store=oss2.ResumableStore(root='/tmp'),
+                    store=oss2.ResumableStore(root=config.temp_dir),
                     multipart_threshold=1024*1024*50,
                     part_size=1024*1024*50,
                     num_threads=4,
@@ -210,4 +210,4 @@ def chaek_configs():
 
 if __name__ == "__main__":
     r_oss = Oss_Operation()
-    r_oss.Uplode_File_Encrypted("sha256.json", "sha256.json")
+    r_oss.Download_Decrypted_File("run-backup.sh", "nas-backup/main-pool/shell/run-backup.sh")
