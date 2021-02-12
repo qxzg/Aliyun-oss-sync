@@ -29,6 +29,11 @@ if __name__ == "__main__":
     start_time = time.time()
     totle_file_num = 0
     totle_file_size = 0
+    oss_waste_size = 0
+    if config.default_storage_class == "Standard":
+        oss_block_size = 0
+    else:
+        oss_block_size = 1024 * 64
 # else:
     for backup_dirs in config.backup_dirs:
         logging.info("正在读取备份目录:" + backup_dirs)
@@ -43,8 +48,14 @@ if __name__ == "__main__":
                 local_files_sha256[relative_path] = ""
                 totle_file_num += 1
                 totle_file_size += file_size
-    logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB" % (totle_file_num, totle_file_size / (1024 * 1024 * 1024)))
-    print("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB" % (totle_file_num, totle_file_size / (1024 * 1024 * 1024)))
+                if file_size < oss_block_size:
+                    oss_waste_size += oss_block_size - oss_waste_size
+    totle_file_size = totle_file_size / (1024 * 1024 * 1024)
+    oss_waste_size = oss_waste_size / (1024 * 1024 * 1024)
+    logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB" %
+                 (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size))
+    print("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB" %
+          (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size))
     if str(input("确认继续请输入Y，否则输入N：")) != "Y":
         exit()
 
