@@ -112,6 +112,6 @@ if __name__ == "__main__":
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)
     oss.Uplode_File_Encrypted(local_json_filename, 'sha256.json', storage_class='Standard')
-    logging.info("copy_list:\n" + str(copy_list).replace("': '", "' <- '"))
+    logging.info("copy_list:\n" + str(copy_list).replace("': '", "' <-- '"))
     logging.info("delete_list:\n" + str(delete_list))
     logging.info("uplode_list:\n" + str(uplode_list))
