@@ -7,7 +7,6 @@ import time
 
 import crcmod._crcfunext  # https://help.aliyun.com/document_detail/85288.html#h2-url-5
 import oss2
-from oss2.crypto import AliKMSProvider
 
 import config
 
@@ -45,7 +44,7 @@ class Oss_Operation(object):
         self.__bucket = oss2.CryptoBucket(
             oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret),
             config.OssEndpoint, config.bucket_name,
-            crypto_provider=AliKMSProvider(config.KMSAccessKeyId, KMSAccessKeySecret, config.KMSRegion, config.CMKID)
+            crypto_provider=oss2.crypto.AliKMSProvider(config.KMSAccessKeyId, KMSAccessKeySecret, config.KMSRegion, config.CMKID)
         )
         del KMSAccessKeySecret
         try:  # 检测Bucket是否存在
