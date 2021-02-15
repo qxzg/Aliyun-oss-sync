@@ -52,6 +52,7 @@ class Oss_Operation(object):
             self.__bucket.get_bucket_info()
         except oss2.exceptions.NoSuchBucket:
             logging.exception("Bucket:\"%s\"不存在" % config.bucket_name)
+            raise ValueError("Bucket:\"%s\"不存在" % config.bucket_name)
         self.__MAX_RETRIES = 3
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
