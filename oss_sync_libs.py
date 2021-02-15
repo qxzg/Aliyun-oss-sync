@@ -45,16 +45,18 @@ def Calculate_Local_File_sha256(file_name):
 
 class Oss_Operation(object):
 
-    def __init__(self):
-        if not config.OssEndpoint.startswith("https://"):
-            logging.critical("OSS Endpoint必须以https://开头")
-            raise Exception("OSS Endpoint必须以https://开头")
+    def __init__(self, KMSAccessKeySecret=None):
         oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
         self.__bucket = oss2.CryptoBucket(
-            oss2.Auth(config.AccessKeyId, config.AccessKeySecret),
+            oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret),
             config.OssEndpoint, config.bucket_name,
-            crypto_provider=AliKMSProvider(config.AccessKeyId, config.AccessKeySecret, config.KMSRegion, config.CMKID)
+            crypto_provider=AliKMSProvider(config.KMSAccessKeyId, KMSAccessKeySecret, config.KMSRegion, config.CMKID)
         )
+        del KMSAccessKeySecret
+        try:  # 检测Bucket是否存在
+            self.__bucket.get_bucket_info()
+        except oss2.exceptions.NoSuchBucket:
+            logging.exception("Bucket:\"%s\"不存在" % config.bucket_name)
         self.__MAX_RETRIES = 3
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
@@ -205,9 +207,12 @@ def chaek_configs():
     if not config.default_storage_class in ['Standard', 'IA', 'Archive', 'ColdArchive']:
         logging.critical("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
         raise ValueError("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
+    if not config.OssEndpoint.startswith("https://"):
+        logging.critical("OSS Endpoint必须以https://开头")
+        raise ValueError("OSS Endpoint必须以https://开头")
     return True
 
 
 if __name__ == "__main__":
-    r_oss = Oss_Operation()
-    r_oss.Download_Decrypted_File("run-backup.sh", "nas-backup/main-pool/shell/run-backup.sh")
+    r_oss = Oss_Operation(str(input("请输入AK为\"%s\"的KMS服务的SK：" % config.KMSAccessKeyId)))
+    #r_oss.Download_Decrypted_File("run-backup.sh", "nas-backup/main-pool/shell/run-backup.sh")

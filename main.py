@@ -20,7 +20,7 @@ if __name__ == "__main__":
     oss_sync_libs.chaek_configs()
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
-    oss = oss_sync_libs.Oss_Operation()
+    oss = oss_sync_libs.Oss_Operation(str(input("请输入AK为\"%s\"的KMS服务的SK：" % config.KMSAccessKeyId)))
 
 ######################################################################
 # else
