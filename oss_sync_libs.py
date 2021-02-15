@@ -11,11 +11,6 @@ from oss2.crypto import AliKMSProvider
 
 import config
 
-try:
-    logging.basicConfig(filename=config.LogFile, encoding='utf-8', level=config.LogLevel, format=config.LogFormat)  # only work on python>=3.9
-except ValueError:
-    logging.basicConfig(filename=config.LogFile, level=config.LogLevel, format=config.LogFormat)
-
 
 def Calculate_Local_File_sha256(file_name):
     """计算sha256
@@ -214,5 +209,19 @@ def chaek_configs():
 
 
 if __name__ == "__main__":
+    logger = logging.getLogger()
+    logger.setLevel(config.LogLevel)
+    formatter = logging.Formatter(config.LogFormat)
+    chlr = logging.StreamHandler()
+    chlr.setFormatter(formatter)
+    try:
+        fhlr = logging.FileHandler(filename=config.LogFile, encoding='utf-8')  # only work on python>=3.9
+    except ValueError:
+        fhlr = logging.FileHandler(filename=config.LogFile)
+    fhlr.setFormatter(formatter)
+    logger.addHandler(chlr)
+    logger.addHandler(fhlr)
+    logger.info('this is info')
+    logger.debug('this is debug')
     r_oss = Oss_Operation(str(input("请输入AK为\"%s\"的KMS服务的SK：" % config.KMSAccessKeyId)))
     #r_oss.Download_Decrypted_File("run-backup.sh", "nas-backup/main-pool/shell/run-backup.sh")

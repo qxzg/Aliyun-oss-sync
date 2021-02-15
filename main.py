@@ -9,11 +9,19 @@ import time
 import config
 import oss_sync_libs
 
+logger = logging.getLogger()
+logger.setLevel(config.LogLevel)
+formatter = logging.Formatter(config.LogFormat)
+chlr = logging.StreamHandler()
+chlr.setFormatter(formatter)
 try:
-    logging.basicConfig(filename=config.LogFile, encoding='utf-8', level=config.LogLevel, format=config.LogFormat)  # only work on python>=3.9
+    fhlr = logging.FileHandler(filename=config.LogFile, encoding='utf-8')  # only work on python>=3.9
 except ValueError:
-    logging.basicConfig(filename=config.LogFile, level=config.LogLevel, format=config.LogFormat)
-
+    fhlr = logging.FileHandler(filename=config.LogFile)
+fhlr.setFormatter(formatter)
+del formatter
+logger.addHandler(chlr)
+logger.addHandler(fhlr)
 
 if __name__ == "__main__":
 

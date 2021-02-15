@@ -1,5 +1,3 @@
-import logging
-
 OSSAccessKeyId = ""
 OSSAccessKeySecret = ""
 OssEndpoint = "https://oss-cn-hangzhou.aliyuncs.com"
@@ -17,7 +15,7 @@ backup_exclude = ('personal/path/to/exclude',)  # 相对路径，将会在扫描
 temp_dir = "/tmp/oss-sync/"
 
 LogFile = "/root/oss-sync.log"
-LogLevel = logging.INFO
+LogLevel = "INFO"
 LogFormat = "%(asctime)s - [%(levelname)s]: %(message)s"
 
 # 在计算文件哈希值时允许一次性打开的最大文件大小(MB)，提高此参数可以加快大文件的计算速度，但是会增加内存消耗
