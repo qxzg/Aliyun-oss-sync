@@ -61,7 +61,7 @@ if __name__ == "__main__":
     totle_file_size = totle_file_size / (1024 * 1024 * 1024)
     oss_waste_size = oss_waste_size / (1024 * 1024 * 1024)
     logger.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB\n存储类型为：%s" %
-                 (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size, config.default_storage_class))
+                (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size, config.default_storage_class))
     if str(input("确认继续请输入Y，否则输入N：")) != "Y":
         exit()
 
@@ -135,3 +135,8 @@ if __name__ == "__main__":
     logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
     logger.info("已删除的文件列表:\n" + str(delete_list))
     logger.info("已上传的文件列表:\n" + str(uplode_list))
+    uplode_file_size = 0.0
+    for path in uplode_list:
+        uplode_file_size += os.path.getsize(path)
+    logger.info("复制的文件总数：%d\n删除的文件总数：%d\n上传的文件总数：%d\n上传的文件总大小：%.2f GB\n" %
+                (len(copy_list), len(delete_list), len(uplode_list), uplode_file_size / (1024 * 1024 * 1024)))
