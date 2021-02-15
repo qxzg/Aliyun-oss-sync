@@ -7,6 +7,9 @@ import time
 
 import crcmod._crcfunext  # https://help.aliyun.com/document_detail/85288.html#h2-url-5
 import oss2
+from alibabacloud_kms20160120 import models as KmsModels
+from alibabacloud_kms20160120.client import Client as KmsClient
+from alibabacloud_tea_openapi import models as OpenApiModels
 
 import config
 
@@ -46,12 +49,18 @@ class Oss_Operation(object):
             config.OssEndpoint, config.bucket_name,
             crypto_provider=oss2.crypto.AliKMSProvider(config.KMSAccessKeyId, KMSAccessKeySecret, config.KMSRegion, config.CMKID)
         )
-        del KMSAccessKeySecret
         try:  # 检测Bucket是否存在
             self.__bucket.get_bucket_info()
         except oss2.exceptions.NoSuchBucket:
             logger.exception("Bucket:\"%s\"不存在" % config.bucket_name)
             raise ValueError("Bucket:\"%s\"不存在" % config.bucket_name)
+        try:  # 检测KMS配置有效性
+            KmsClient(OpenApiModels.Config(access_key_id=config.KMSAccessKeyId, access_key_secret=KMSAccessKeySecret, endpoint='kms.%s.aliyuncs.com' %
+                                           config.KMSRegion)).generate_data_key(KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
+        except:
+            logger.exception("无法调用GenerateDataKey，请检查KMS相关配置")
+            raise ValueError("无法调用GenerateDataKey，请检查KMS相关配置")
+        del KMSAccessKeySecret
         self.__MAX_RETRIES = 3
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
@@ -224,4 +233,4 @@ if __name__ == "__main__":
     logger.info('this is info')
     logger.debug('this is debug')
     r_oss = Oss_Operation(str(input("请输入AK为\"%s\"的KMS服务的SK：" % config.KMSAccessKeyId)))
-    #r_oss.Download_Decrypted_File("run-backup.sh", "nas-backup/main-pool/shell/run-backup.sh")
+    # r_oss.Download_Decrypted_File("run-backup.sh", "nas-backup/main-pool/shell/run-backup.sh")
