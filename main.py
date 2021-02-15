@@ -44,7 +44,7 @@ if __name__ == "__main__":
         oss_block_size = 1024 * 64
 # else:
     for backup_dirs in config.backup_dirs:
-        logging.info("正在读取备份目录:" + backup_dirs)
+        logger.info("正在读取备份目录:" + backup_dirs)
         for root, dirs, files in os.walk(backup_dirs):
             if root.startswith(config.backup_exclude):
                 continue  # 排除特定文件夹
@@ -60,7 +60,7 @@ if __name__ == "__main__":
                     oss_waste_size += oss_block_size - file_size
     totle_file_size = totle_file_size / (1024 * 1024 * 1024)
     oss_waste_size = oss_waste_size / (1024 * 1024 * 1024)
-    logging.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB\n存储类型%s" %
+    logger.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB\n存储类型为：%s" %
                  (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size, config.default_storage_class))
     if str(input("确认继续请输入Y，否则输入N：")) != "Y":
         exit()
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 # else:
     copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
     uplode_list = []  # 需要上传的文件列表
-    logging.info("开始上传文件")
+    logger.info("开始上传文件")
     for path in local_files_sha256:  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
         sha256 = oss_sync_libs.Calculate_Local_File_sha256(path)
         if sha256 == False:
@@ -93,7 +93,7 @@ if __name__ == "__main__":
                 try:
                     oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class, file_sha256=sha256)
                 except FileNotFoundError:
-                    logging.warning("上传时无法找到文件%s" % path)
+                    logger.warning("上传时无法找到文件%s" % path)
                     del(local_files_sha256[path])
                 else:
                     uplode_list.append(path)
@@ -103,7 +103,7 @@ if __name__ == "__main__":
             try:
                 oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class, file_sha256=sha256)
             except FileNotFoundError:
-                logging.warning("上传时无法找到文件%s" % path)
+                logger.warning("上传时无法找到文件%s" % path)
                 del(local_files_sha256[path])
             else:
                 uplode_list.append(path)
@@ -120,9 +120,9 @@ if __name__ == "__main__":
     try:
         with open(local_json_filename, 'w') as json_fileobj:
             json.dump(local_files_sha256, json_fileobj)
-        logging.info("sha256保存到" + local_json_filename)
+        logger.info("sha256保存到" + local_json_filename)
     except:
-        logging.exception("保存json文件时出错，无法保存至%s，尝试保存至%ssha256_local.json" % (local_json_filename, config.local_bace_dir))
+        logger.exception("保存json文件时出错，无法保存至%s，尝试保存至%ssha256_local.json" % (local_json_filename, config.local_bace_dir))
         with open(config.local_bace_dir + "sha256_local.json", 'w') as json_fileobj:
             json.dump(local_files_sha256, json_fileobj)
 
@@ -132,6 +132,6 @@ if __name__ == "__main__":
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)
     oss.Uplode_File_Encrypted(local_json_filename, 'sha256.json', storage_class='Standard')
-    logging.info("copy_list:\n" + str(copy_list).replace("': '", "' <-- '"))
-    logging.info("delete_list:\n" + str(delete_list))
-    logging.info("uplode_list:\n" + str(uplode_list))
+    logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
+    logger.info("已删除的文件列表:\n" + str(delete_list))
+    logger.info("已上传的文件列表:\n" + str(uplode_list))

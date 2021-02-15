@@ -32,7 +32,7 @@ def Calculate_Local_File_sha256(file_name):
             else:
                 m.update(fobj.read())
     except:
-        logging.exception("[Calculate_Local_File_sha256] Fail to open the file: %s", file_name)
+        logger.exception("[Calculate_Local_File_sha256] Fail to open the file: %s", file_name)
         return False
     return m.hexdigest()
 
@@ -50,7 +50,7 @@ class Oss_Operation(object):
         try:  # 检测Bucket是否存在
             self.__bucket.get_bucket_info()
         except oss2.exceptions.NoSuchBucket:
-            logging.exception("Bucket:\"%s\"不存在" % config.bucket_name)
+            logger.exception("Bucket:\"%s\"不存在" % config.bucket_name)
             raise ValueError("Bucket:\"%s\"不存在" % config.bucket_name)
         self.__MAX_RETRIES = 3
         self.__bucket_name = config.bucket_name
@@ -86,10 +86,10 @@ class Oss_Operation(object):
                 )
                 break
             except oss2.exceptions.ClientError:
-                logging.exception("Uplode_File_Encrypted error, retrying time %d" % retry_count)
+                logger.exception("Uplode_File_Encrypted error, retrying time %d" % retry_count)
                 time.sleep(retry_count)
                 if retry_count >= self.__MAX_RETRIES:
-                    logging.exception("[Uplode_File_Encrypted] Error")
+                    logger.exception("[Uplode_File_Encrypted] Error")
                     raise oss2.exceptions.ClientError
         return result
 
@@ -107,13 +107,13 @@ class Oss_Operation(object):
                 result = self.__bucket.get_object_to_file(remote_file_name, local_file_name)
                 break
             except oss2.exceptions.ClientError:
-                logging.exception("Download_Decrypted_File error, retrying time %d" % retry_count)
+                logger.exception("Download_Decrypted_File error, retrying time %d" % retry_count)
                 time.sleep(retry_count)
                 if retry_count >= self.__MAX_RETRIES:
-                    logging.exception("[Uplode_File_Encrypted] Error")
+                    logger.exception("[Uplode_File_Encrypted] Error")
                     raise Exception
             except oss2.exceptions.NoSuchKey:
-                logging.exception("无法从oss下载文件" + remote_file_name)
+                logger.exception("无法从oss下载文件" + remote_file_name)
                 raise oss2.exceptions.NoSuchKey
         return result
 
@@ -147,10 +147,10 @@ class Oss_Operation(object):
                 result = self.__bucket.get_object(remote_file)
                 break
             except oss2.exceptions.ClientError:
-                logging.exception("Verify_Remote_File_Integrity error, retrying time %d" % retry_count)
+                logger.exception("Verify_Remote_File_Integrity error, retrying time %d" % retry_count)
                 time.sleep(retry_count)
                 if retry_count >= self.__MAX_RETRIES:
-                    logging.exception("[Verify_Remote_File_Integrity] Error")
+                    logger.exception("[Verify_Remote_File_Integrity] Error")
                     raise oss2.exceptions.ClientError
         sha256 = hashlib.sha256()
         for chunk in result:
@@ -164,46 +164,46 @@ class Oss_Operation(object):
 def chaek_configs():
     # 检查目录参数合法性
     if config.local_bace_dir[0] != '/' or config.local_bace_dir[-1] != '/':
-        logging.critical("本地工作目录(local_bace_dir)必须为带有前导和后导/的格式")
+        logger.critical("本地工作目录(local_bace_dir)必须为带有前导和后导/的格式")
         raise ValueError("本地工作目录(local_bace_dir)必须为带有前导和后导/的格式")
     if config.temp_dir[0] != '/' or config.temp_dir[-1] != '/':
-        logging.critical("临时目录(temp_dir)必须为带有前导和后导/的格式")
+        logger.critical("临时目录(temp_dir)必须为带有前导和后导/的格式")
         raise ValueError("临时目录(temp_dir)必须为带有前导和后导/的格式")
     if config.remote_bace_dir[0] == '/' or config.remote_bace_dir[-1] != '/':
-        logging.critical("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
+        logger.critical("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
         raise ValueError("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
     for path in config.backup_dirs:
         if path[0] == '/' or path[-1] != '/':
-            logging.critical("本地备份目录(backup_dirs)必须为带有后导/的格式")
+            logger.critical("本地备份目录(backup_dirs)必须为带有后导/的格式")
             raise ValueError("本地备份目录(backup_dirs)必须为带有后导/的格式")
     if type(config.backup_exclude) != tuple:
-        logging.critical("备份排除目录(backup_exclude_dirs)必须为tuple类型")
+        logger.critical("备份排除目录(backup_exclude_dirs)必须为tuple类型")
         raise ValueError("备份排除目录(backup_exclude_dirs)必须为tuple类型")
     for path in config.backup_exclude:
         if path[0] == '/':
-            logging.critical("备份排除目录(backup_exclude_dirs)必须为不带前导/的相对路径")
+            logger.critical("备份排除目录(backup_exclude_dirs)必须为不带前导/的相对路径")
             raise ValueError("备份排除目录(backup_exclude_dirs)必须为不带前导/的相对路径")
     # 检查目录是否存在
     try:
         os.chdir(config.local_bace_dir)
     except FileNotFoundError:
-        logging.exception("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
+        logger.exception("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
         raise ValueError("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
     try:
         for dirs in config.backup_dirs:
             assert os.path.isdir(dirs)
     except FileNotFoundError:
-        logging.exception("备份目录'%s'无效，请检查设置" % dirs)
+        logger.exception("备份目录'%s'无效，请检查设置" % dirs)
         raise ValueError("备份目录'%s'无效，请检查设置" % dirs)
     if not os.path.exists(config.temp_dir):
-        logging.info("临时文件夹%s不存在，将会自动创建")
+        logger.info("临时文件夹%s不存在，将会自动创建")
         os.makedirs(config.temp_dir)
     # 检查oss参数合法性
     if not config.default_storage_class in ['Standard', 'IA', 'Archive', 'ColdArchive']:
-        logging.critical("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
+        logger.critical("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
         raise ValueError("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
     if not config.OssEndpoint.startswith("https://"):
-        logging.critical("OSS Endpoint必须以https://开头")
+        logger.critical("OSS Endpoint必须以https://开头")
         raise ValueError("OSS Endpoint必须以https://开头")
     return True
 
