@@ -9,7 +9,7 @@ import time
 import config
 import oss_sync_libs
 
-logger = logging.getLogger()
+logger = logging.getLogger("main")
 logger.setLevel(config.LogLevel)
 formatter = logging.Formatter(config.LogFormat)
 chlr = logging.StreamHandler()

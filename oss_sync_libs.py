@@ -13,6 +13,7 @@ from alibabacloud_tea_openapi import models as OpenApiModels
 
 import config
 
+logger = logging.getLogger("oss_sync_libs")
 
 def Calculate_Local_File_sha256(file_name):
     """计算sha256
@@ -218,7 +219,6 @@ def chaek_configs():
 
 
 if __name__ == "__main__":
-    logger = logging.getLogger()
     logger.setLevel(config.LogLevel)
     formatter = logging.Formatter(config.LogFormat)
     chlr = logging.StreamHandler()
