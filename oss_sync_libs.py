@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import time
+from getpass import getpass
 
 import crcmod._crcfunext  # https://help.aliyun.com/document_detail/85288.html#h2-url-5
 import oss2
@@ -14,6 +15,7 @@ from alibabacloud_tea_openapi import models as OpenApiModels
 import config
 
 logger = logging.getLogger("oss_sync_libs")
+
 
 def Calculate_Local_File_sha256(file_name):
     """计算sha256
@@ -232,5 +234,5 @@ if __name__ == "__main__":
     logger.addHandler(fhlr)
     logger.info('this is info')
     logger.debug('this is debug')
-    r_oss = Oss_Operation(str(input("请输入AK为\"%s\"的KMS服务的SK：" % config.KMSAccessKeyId)))
+    r_oss = Oss_Operation(str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % config.KMSAccessKeyId)))
     # r_oss.Download_Decrypted_File("run-backup.sh", "nas-backup/main-pool/shell/run-backup.sh")
