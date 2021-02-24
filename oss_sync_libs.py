@@ -11,6 +11,7 @@ import oss2
 from alibabacloud_kms20160120 import models as KmsModels
 from alibabacloud_kms20160120.client import Client as KmsClient
 from alibabacloud_tea_openapi import models as OpenApiModels
+from numpy import square
 
 import config
 
@@ -67,6 +68,12 @@ class Oss_Operation(object):
         self.__MAX_RETRIES = 3
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
+        if os.name == 'nt':
+            self.__ping_cmd = "ping -n 1 " + config.OssEndpoint[8:]
+        elif os.name == 'posix':
+            self.__ping_cmd = "ping -c 1 " + config.OssEndpoint[8:]
+        else:
+            raise OSError("无法识别操作系统")
 
     def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None):
         """使用KMS加密并上传文件
@@ -97,12 +104,17 @@ class Oss_Operation(object):
                     }
                 )
                 break
-            except oss2.exceptions.ClientError:
-                logger.exception("Uplode_File_Encrypted error, retrying time %d" % retry_count)
-                time.sleep(retry_count)
-                if retry_count >= self.__MAX_RETRIES:
+            except (oss2.exceptions.ClientError, oss2.exceptions.RequestError, ConnectionResetError) as err:
+                if retry_count < self.__MAX_RETRIES:
+                    logger.error("[Uplode_File_Encrypted] error, retrying time %d" % retry_count)
+                    logger.error(err)
+                else:
                     logger.exception("[Uplode_File_Encrypted] Error")
                     raise oss2.exceptions.ClientError
+                time.sleep(square(retry_count) * 10)
+                while os.system(self.__ping_cmd) != 0:
+                    logger.error("无法连接网络，10秒后重试")
+                    time.sleep(10)
         return result
 
     def Download_Decrypted_File(self, local_file_name, remote_object_name):
@@ -118,12 +130,17 @@ class Oss_Operation(object):
                 retry_count += 1
                 result = self.__bucket.get_object_to_file(remote_object_name, local_file_name)
                 break
-            except oss2.exceptions.ClientError:
-                logger.exception("Download_Decrypted_File error, retrying time %d" % retry_count)
-                time.sleep(retry_count)
-                if retry_count >= self.__MAX_RETRIES:
-                    logger.exception("[Uplode_File_Encrypted] Error")
-                    raise Exception
+            except (oss2.exceptions.ClientError, oss2.exceptions.RequestError, ConnectionResetError) as err:
+                if retry_count < self.__MAX_RETRIES:
+                    logger.error("[Download_File_Encrypted] error, retrying time %d" % retry_count)
+                    logger.error(err)
+                else:
+                    logger.exception("[Download_File_Encrypted] Error")
+                    raise oss2.exceptions.ClientError
+                time.sleep(square(retry_count) * 10)
+                while os.system(self.__ping_cmd) != 0:
+                    logger.error("无法连接网络，10秒后重试")
+                    time.sleep(10)
             except oss2.exceptions.NoSuchKey:
                 logger.exception("无法从oss下载文件" + remote_object_name)
                 raise oss2.exceptions.NoSuchKey
@@ -274,6 +291,4 @@ if __name__ == "__main__":
     chlr = logging.StreamHandler()
     chlr.setFormatter(formatter)
     logger.addHandler(chlr)
-    logger.info('this is info')
-    logger.debug('this is debug')
     r_oss = Oss_Operation('')

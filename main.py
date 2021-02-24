@@ -7,6 +7,8 @@ import sys
 import time
 from getpass import getpass
 
+import oss2
+
 import config
 import oss_sync_libs
 
@@ -94,7 +96,10 @@ if __name__ == "__main__":
                 try:
                     oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class, file_sha256=sha256)
                 except FileNotFoundError:
-                    logger.warning("上传时无法找到文件%s" % path)
+                    logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
+                    del(local_files_sha256[path])
+                except oss2.exceptions.ClientError:
+                    logger.warning("由于网络错误无法上传文件%s" % path)
                     del(local_files_sha256[path])
                 else:
                     uplode_list.append(path)
@@ -105,6 +110,9 @@ if __name__ == "__main__":
                 oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class, file_sha256=sha256)
             except FileNotFoundError:
                 logger.warning("上传时无法找到文件%s" % path)
+                del(local_files_sha256[path])
+            except oss2.exceptions.ClientError:
+                logger.warning("由于网络错误无法上传文件%s" % path)
                 del(local_files_sha256[path])
             else:
                 uplode_list.append(path)
