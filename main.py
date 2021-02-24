@@ -146,5 +146,5 @@ if __name__ == "__main__":
     uplode_file_size = 0.0
     for path in uplode_list:
         uplode_file_size += os.path.getsize(path)
-    logger.info("复制的文件总数：%d\n删除的文件总数：%d\n上传的文件总数：%d\n上传的文件总大小：%.2f GB\n" %
+    logger.info("\n复制的文件总数：%d\n删除的文件总数：%d\n上传的文件总数：%d\n上传的文件总大小：%.2f GB" %
                 (len(copy_list), len(delete_list), len(uplode_list), uplode_file_size / (1024 * 1024 * 1024)))
