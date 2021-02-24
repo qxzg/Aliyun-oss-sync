@@ -116,7 +116,7 @@ if __name__ == "__main__":
                 oss.Restore_Remote_File(src_obj)
                 processed.append(src_obj)
         time.sleep(90)
-        oss.Copy_remote_files(copy_list)
+        oss.Copy_remote_files(copy_list, storage_class=config.default_storage_class)
         del processed
     delete_list = []  # 需要删除的文件列表
     for path, sha256 in remote_files_sha256.items():
