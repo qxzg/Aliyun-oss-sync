@@ -55,13 +55,13 @@ class Oss_Operation(object):
         try:  # 检测Bucket是否存在
             self.__bucket.get_bucket_info()
         except oss2.exceptions.NoSuchBucket:
-            logger.exception("Bucket:\"%s\"不存在" % config.bucket_name)
+            logger.critical("Bucket:\"%s\"不存在" % config.bucket_name)
             raise ValueError("Bucket:\"%s\"不存在" % config.bucket_name)
         try:  # 检测KMS配置有效性
             KmsClient(OpenApiModels.Config(access_key_id=config.KMSAccessKeyId, access_key_secret=KMSAccessKeySecret, endpoint='kms.%s.aliyuncs.com' %
                                            config.KMSRegion)).generate_data_key(KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
         except:
-            logger.exception("无法调用GenerateDataKey，请检查KMS相关配置")
+            logger.critical("无法调用GenerateDataKey，请检查KMS相关配置")
             raise ValueError("无法调用GenerateDataKey，请检查KMS相关配置")
         del KMSAccessKeySecret
         self.__MAX_RETRIES = 3
@@ -276,4 +276,4 @@ if __name__ == "__main__":
     logger.addHandler(chlr)
     logger.info('this is info')
     logger.debug('this is debug')
-    r_oss = Oss_Operation(str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % config.KMSAccessKeyId)))
+    r_oss = Oss_Operation('lT3HgrDG8IhzS3CKRbqSdDTDgHmweK')
