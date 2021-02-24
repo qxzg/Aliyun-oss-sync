@@ -75,7 +75,7 @@ class Oss_Operation(object):
         else:
             raise OSError("无法识别操作系统")
 
-    def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None):
+    def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, check_sha256_before_uplode=False):
         """使用KMS加密并上传文件
 
         Args:
@@ -83,12 +83,22 @@ class Oss_Operation(object):
             remote_object_name (str): 远程文件路径
             storage_class (str, 可选): Object的存储类型，取值：Standard、IA、Archive和ColdArchive。默认值可在config中配置
             file_sha256 (str, 可选): 如不提供将会自动计算本地文件sha256
+            check_sha256_before_uplode (bool, 可选): 是否在上传之前对比远端文件的sha256，如相同则跳过上传
         """
         if not file_sha256:
             file_sha256 = Calculate_Local_File_sha256(local_file_name)
         retry_count = 0
+        if check_sha256_before_uplode:
+            try:
+                remote_object_sha256 = self.Get_Remote_File_Meta(remote_object_name)['x-oss-meta-sha256']
+            except KeyError:
+                remote_object_sha256 = file_sha256
+            if remote_object_sha256 == file_sha256:
+                logger.info("[Uplode_File_Encrypted]sha256相同，跳过%s文件的上传" % (local_file_name))
+                return 200
         while True:
             try:
+
                 retry_count += 1
                 result = oss2.resumable_upload(
                     self.__bucket, remote_object_name, local_file_name,
@@ -115,7 +125,7 @@ class Oss_Operation(object):
                 while os.system(self.__ping_cmd) != 0:
                     logger.error("无法连接网络，10秒后重试")
                     time.sleep(10)
-        return result
+        return 200
 
     def Download_Decrypted_File(self, local_file_name, remote_object_name):
         """从OSS下载并解密文件
@@ -291,4 +301,4 @@ if __name__ == "__main__":
     chlr = logging.StreamHandler()
     chlr.setFormatter(formatter)
     logger.addHandler(chlr)
-    r_oss = Oss_Operation('')
+    r_oss = Oss_Operation('ZGj39xqjdQz2DsDJgswM0ufYxM9diA')

@@ -94,7 +94,8 @@ if __name__ == "__main__":
                 copy_list[config.remote_bace_dir + path] = config.remote_bace_dir + sha256_to_remote_file[sha256]
             else:
                 try:
-                    oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class, file_sha256=sha256)
+                    oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class,
+                                              file_sha256=sha256, check_sha256_before_uplode=False)
                 except FileNotFoundError:
                     logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
                     del(local_files_sha256[path])
@@ -107,7 +108,8 @@ if __name__ == "__main__":
             copy_list[config.remote_bace_dir + path] = config.remote_bace_dir + sha256_to_remote_file[sha256]
         else:
             try:
-                oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class, file_sha256=sha256)
+                oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class,
+                                          file_sha256=sha256, check_sha256_before_uplode=False)
             except FileNotFoundError:
                 logger.warning("上传时无法找到文件%s" % path)
                 del(local_files_sha256[path])
