@@ -100,7 +100,7 @@ if __name__ == "__main__":
                 except FileNotFoundError:
                     logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
                     del(local_files_sha256[path])
-                except oss2.exceptions.ClientError:
+                except oss2.exceptions.RequestError:
                     logger.warning("由于网络错误无法上传文件%s" % path)
                     del(local_files_sha256[path])
                 else:
@@ -114,7 +114,7 @@ if __name__ == "__main__":
             except FileNotFoundError:
                 logger.warning("上传时无法找到文件%s" % path)
                 del(local_files_sha256[path])
-            except oss2.exceptions.ClientError:
+            except oss2.exceptions.RequestError:
                 logger.warning("由于网络错误无法上传文件%s" % path)
                 del(local_files_sha256[path])
             else:

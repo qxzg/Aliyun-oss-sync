@@ -124,7 +124,7 @@ class Oss_Operation(object):
                     logger.error(err)
                 else:
                     logger.exception("[Uplode_File_Encrypted] Error")
-                    raise oss2.exceptions.ClientError
+                    raise oss2.exceptions.RequestError
                 time.sleep(square(retry_count) * 10)
                 while os.system(self.__ping_cmd) != 0:
                     logger.error("无法连接网络，10秒后重试")
@@ -150,14 +150,14 @@ class Oss_Operation(object):
                     logger.error(err)
                 else:
                     logger.exception("[Download_File_Encrypted] Error")
-                    raise oss2.exceptions.ClientError
+                    raise oss2.exceptions.RequestError
                 time.sleep(square(retry_count) * 10)
                 while os.system(self.__ping_cmd) != 0:
                     logger.error("无法连接网络，10秒后重试")
                     time.sleep(10)
             except oss2.exceptions.NoSuchKey:
                 logger.exception("无法从oss下载文件" + remote_object_name)
-                raise oss2.exceptions.NoSuchKey
+                return 404
         return result
 
     def Delete_Remote_files(self, delete_list):
