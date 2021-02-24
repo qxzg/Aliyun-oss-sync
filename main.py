@@ -110,7 +110,16 @@ if __name__ == "__main__":
                 uplode_list.append(path)
 
     if len(copy_list) != 0:
+        processed = []
+        for dst_obj, src_obj in copy_list.items():
+            if src_obj not in processed:
+                oss.Restore_Remote_File(src_obj)
+                processed.append(src_obj)
+        time.sleep(90)
+        while oss.Get_Remote_File_Meta(processed[0])['x-oss-restore'] == 'ongoing-request="true"':
+            time.sleep(10)
         oss.Copy_remote_files(copy_list)
+        del processed
     delete_list = []  # 需要删除的文件列表
     for path, sha256 in remote_files_sha256.items():
         if not path in local_files_sha256:

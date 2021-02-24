@@ -68,12 +68,12 @@ class Oss_Operation(object):
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
 
-    def Uplode_File_Encrypted(self, local_file_name, remote_file_name, storage_class='Standard', file_sha256=None):
+    def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None):
         """使用KMS加密并上传文件
 
         Args:
             local_file_name (str): 本地文件路径
-            remote_file_name (str): 远程文件路径
+            remote_object_name (str): 远程文件路径
             storage_class (str, 可选): Object的存储类型，取值：Standard、IA、Archive和ColdArchive。默认值可在config中配置
             file_sha256 (str, 可选): 如不提供将会自动计算本地文件sha256
         """
@@ -84,7 +84,7 @@ class Oss_Operation(object):
             try:
                 retry_count += 1
                 result = oss2.resumable_upload(
-                    self.__bucket, remote_file_name, local_file_name,
+                    self.__bucket, remote_object_name, local_file_name,
                     store=oss2.ResumableStore(root=config.temp_dir),
                     multipart_threshold=1024*1024*50,
                     part_size=1024*1024*50,
@@ -105,18 +105,18 @@ class Oss_Operation(object):
                     raise oss2.exceptions.ClientError
         return result
 
-    def Download_Decrypted_File(self, local_file_name, remote_file_name):
+    def Download_Decrypted_File(self, local_file_name, remote_object_name):
         """从OSS下载并解密文件
 
         Args:
             local_file_name (str)
-            remote_file_name (str)
+            remote_object_name (str)
         """
         retry_count = 0
         while True:
             try:
                 retry_count += 1
-                result = self.__bucket.get_object_to_file(remote_file_name, local_file_name)
+                result = self.__bucket.get_object_to_file(remote_object_name, local_file_name)
                 break
             except oss2.exceptions.ClientError:
                 logger.exception("Download_Decrypted_File error, retrying time %d" % retry_count)
@@ -125,7 +125,7 @@ class Oss_Operation(object):
                     logger.exception("[Uplode_File_Encrypted] Error")
                     raise Exception
             except oss2.exceptions.NoSuchKey:
-                logger.exception("无法从oss下载文件" + remote_file_name)
+                logger.exception("无法从oss下载文件" + remote_object_name)
                 raise oss2.exceptions.NoSuchKey
         return result
 
@@ -151,12 +151,12 @@ class Oss_Operation(object):
         for dst_obj, src_obj in copy_list.items():
             self.__bucket.copy_object(self.__bucket_name, src_obj, dst_obj)
 
-    def Verify_Remote_File_Integrity(self, remote_file):
+    def Verify_Remote_File_Integrity(self, remote_object):
         retry_count = 0
         while True:
             try:
                 retry_count += 1
-                result = self.__bucket.get_object(remote_file)
+                result = self.__bucket.get_object(remote_object)
                 break
             except oss2.exceptions.ClientError:
                 logger.exception("Verify_Remote_File_Integrity error, retrying time %d" % retry_count)
@@ -171,6 +171,54 @@ class Oss_Operation(object):
             return True
         else:
             return False
+
+    def Get_Remote_File_Meta(self, remote_object, versionId=None):
+        """获取一个远程文件的元信息
+
+        Args:
+            remote_object (str)
+            versionId (str, optional)
+
+        Returns:
+            list: https://help.aliyun.com/document_detail/31984.html?#title-xew-l4g-a20
+        """
+        try:
+            if versionId:
+                objectmeta = self.__bucket.head_object(remote_object, params={'versionId': versionId})
+            else:
+                objectmeta = self.__bucket.head_object(remote_object)
+        except oss2.exceptions.NotFound:
+            logger.warning("请求的object %s 不存在" % (remote_object))
+            return 404
+        except oss2.exceptions.ServerError as e:
+            logger.error(e)
+        else:
+            return objectmeta.headers
+
+    def Restore_Remote_File(self, remote_object, versionId=""):
+        """解冻一个Object
+        api文档: https://help.aliyun.com/document_detail/52930.html
+
+        Args:
+            remote_object (str)
+            versionId (str, optional)
+
+        Returns:
+            int: http响应码
+        """
+        try:
+            self.__bucket.restore_object(remote_object)
+        except oss2.exceptions.OperationNotSupported:
+            logger.warning("您正在试图解冻一个非归档或冷归档类型的Object: %s" % (remote_object))
+            return 400
+        except oss2.exceptions.RestoreAlreadyInProgress:
+            logger.info("目标object %s 正在解冻中" % (remote_object))
+            return 409
+        except oss2.exceptions.NoSuchKey:
+            logger.warning("您正在解冻一个不存在的object %s" % (remote_object))
+            return 404
+        else:
+            return 200
 
 
 def chaek_configs():
@@ -225,14 +273,7 @@ if __name__ == "__main__":
     formatter = logging.Formatter(config.LogFormat)
     chlr = logging.StreamHandler()
     chlr.setFormatter(formatter)
-    try:
-        fhlr = logging.FileHandler(filename=config.LogFile, encoding='utf-8')  # only work on python>=3.9
-    except ValueError:
-        fhlr = logging.FileHandler(filename=config.LogFile)
-    fhlr.setFormatter(formatter)
     logger.addHandler(chlr)
-    logger.addHandler(fhlr)
     logger.info('this is info')
     logger.debug('this is debug')
     r_oss = Oss_Operation(str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % config.KMSAccessKeyId)))
-    # r_oss.Download_Decrypted_File("run-backup.sh", "nas-backup/main-pool/shell/run-backup.sh")
