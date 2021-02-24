@@ -85,6 +85,7 @@ if __name__ == "__main__":
         sha256 = oss_sync_libs.Calculate_Local_File_sha256(path)
         if sha256 == False:
             del(local_files_sha256[path])
+            logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
             continue
         local_files_sha256[path] = sha256
         if path in remote_files_sha256:
@@ -92,7 +93,7 @@ if __name__ == "__main__":
                 continue
             elif sha256 in sha256_to_remote_file:
                 copy_list[config.remote_bace_dir + path] = config.remote_bace_dir + sha256_to_remote_file[sha256]
-            else:
+            else:  # 上传文件并覆盖
                 try:
                     oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class,
                                               file_sha256=sha256, check_sha256_before_uplode=False)
@@ -106,7 +107,7 @@ if __name__ == "__main__":
                     uplode_list.append(path)
         elif sha256 in sha256_to_remote_file:
             copy_list[config.remote_bace_dir + path] = config.remote_bace_dir + sha256_to_remote_file[sha256]
-        else:
+        else:  # 上传新增文件
             try:
                 oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class,
                                           file_sha256=sha256, check_sha256_before_uplode=False)
