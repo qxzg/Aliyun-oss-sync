@@ -305,4 +305,4 @@ if __name__ == "__main__":
     chlr = logging.StreamHandler()
     chlr.setFormatter(formatter)
     logger.addHandler(chlr)
-    r_oss = Oss_Operation('ZGj39xqjdQz2DsDJgswM0ufYxM9diA')
+    r_oss = Oss_Operation('')
