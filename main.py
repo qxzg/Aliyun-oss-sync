@@ -116,8 +116,6 @@ if __name__ == "__main__":
                 oss.Restore_Remote_File(src_obj)
                 processed.append(src_obj)
         time.sleep(90)
-        while oss.Get_Remote_File_Meta(processed[0])['x-oss-restore'] == 'ongoing-request="true"':
-            time.sleep(10)
         oss.Copy_remote_files(copy_list)
         del processed
     delete_list = []  # 需要删除的文件列表
