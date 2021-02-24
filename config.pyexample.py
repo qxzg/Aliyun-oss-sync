@@ -1,6 +1,6 @@
 OSSAccessKeyId = ""  # OSS服务用户AK
 OSSAccessKeySecret = ""  # OSS服务用户SK
-OssEndpoint = "https://oss-cn-hangzhou.aliyuncs.com"  # OSS Endpoint，需要https://前缀
+OssEndpoint = "oss-cn-hangzhou.aliyuncs.com"  # OSS Endpoint
 bucket_name = ""
 storage_class = ""  # Object的存储类型，取值：Standard、IA、Archive和ColdArchive
 

@@ -48,9 +48,10 @@ class Oss_Operation(object):
 
     def __init__(self, KMSAccessKeySecret=None):
         oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
+        self.__OssEndpoint = 'https://' + config.OssEndpoint
         self.__bucket = oss2.CryptoBucket(
             oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret),
-            config.OssEndpoint, config.bucket_name,
+            self.__OssEndpoint, config.bucket_name,
             crypto_provider=oss2.crypto.AliKMSProvider(config.KMSAccessKeyId, KMSAccessKeySecret, config.KMSRegion, config.CMKID)
         )
         try:  # 检测Bucket是否存在
@@ -69,11 +70,14 @@ class Oss_Operation(object):
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
         if os.name == 'nt':
-            self.__ping_cmd = "ping -n 1 " + config.OssEndpoint[8:]
+            self.__ping_cmd = "ping -n 1 " + config.OssEndpoint
         elif os.name == 'posix':
-            self.__ping_cmd = "ping -c 1 " + config.OssEndpoint[8:]
+            self.__ping_cmd = "ping -c 1 " + config.OssEndpoint
         else:
             raise OSError("无法识别操作系统")
+        if os.system(self.__ping_cmd) != 0:
+            logger.error("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
+            raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
 
     def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, check_sha256_before_uplode=False):
         """使用KMS加密并上传文件
@@ -289,9 +293,9 @@ def chaek_configs():
     if not config.default_storage_class in ['Standard', 'IA', 'Archive', 'ColdArchive']:
         logger.critical("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
         raise ValueError("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
-    if not config.OssEndpoint.startswith("https://"):
-        logger.critical("OSS Endpoint必须以https://开头")
-        raise ValueError("OSS Endpoint必须以https://开头")
+    if config.OssEndpoint.startswith("http"):
+        logger.critical("OSS Endpoint请直接填写域名")
+        raise ValueError("OSS Endpoint请直接填写域名")
     return True
 
 
