@@ -82,7 +82,7 @@ if __name__ == "__main__":
     uplode_list = []  # 需要上传的文件列表
     logger.info("开始上传文件")
     i = 0
-    for path in local_files_sha256:  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
+    for path in list[local_files_sha256]:  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
         i = i + 1
         if i == 2500:
             time.sleep(20)
