@@ -142,14 +142,14 @@ class Oss_Operation(object):
             self.__bucket.batch_delete_objects(delete_list[i * 1000:(i * 1000) + 999])
         return
 
-    def Copy_remote_files(self, copy_list):
+    def Copy_remote_files(self, copy_list, storage_class='Standard'):
         """复制远程文件
 
         Args:
             copy_list (dits): Key:目标文件, velue:源文件
         """
         for dst_obj, src_obj in copy_list.items():
-            self.__bucket.copy_object(self.__bucket_name, src_obj, dst_obj)
+            self.__bucket.copy_object(self.__bucket_name, src_obj, dst_obj, headers={'x-oss-storage-class': storage_class})
 
     def Verify_Remote_File_Integrity(self, remote_object):
         retry_count = 0
@@ -276,4 +276,4 @@ if __name__ == "__main__":
     logger.addHandler(chlr)
     logger.info('this is info')
     logger.debug('this is debug')
-    r_oss = Oss_Operation('lT3HgrDG8IhzS3CKRbqSdDTDgHmweK')
+    r_oss = Oss_Operation('')
