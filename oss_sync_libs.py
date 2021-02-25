@@ -95,7 +95,7 @@ class Oss_Operation(object):
         if check_sha256_before_uplode:
             try:
                 remote_object_sha256 = self.Get_Remote_File_Meta(remote_object_name)['x-oss-meta-sha256']
-            except KeyError:
+            except:
                 remote_object_sha256 = file_sha256
             if remote_object_sha256 == file_sha256:
                 logger.info("[Uplode_File_Encrypted]sha256相同，跳过%s文件的上传" % (local_file_name))
