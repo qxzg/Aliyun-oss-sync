@@ -79,7 +79,7 @@ class Oss_Operation(object):
             logger.error("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
             raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
 
-    def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, check_sha256_before_uplode=False):
+    def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, cache_control='no-store', check_sha256_before_uplode=False):
         """使用KMS加密并上传文件
 
         Args:
@@ -112,6 +112,7 @@ class Oss_Operation(object):
                     num_threads=4,
                     headers={
                         "content-length": str(os.path.getsize(local_file_name)),
+                        "Cache-Control": cache_control,
                         "x-oss-server-side-encryption": "KMS",
                         "x-oss-storage-class": storage_class,
                         "x-oss-meta-sha256": file_sha256
