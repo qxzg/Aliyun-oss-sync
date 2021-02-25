@@ -16,7 +16,7 @@ temp_dir = "/tmp/oss-sync/"  # 临时文件位置，绝对路径
 
 LogFile = "/root/oss-sync.log"  # 日志文件位置，推荐使用绝对路径
 LogLevel = "INFO"  # 日志级别，取值：DEBUG，INFO，WARNING，ERROR，CRITICAL
-LogFormat = "%(asctime)s - [%(levelname)s]: %(message)s"  # 日志输出格式
+LogFormat = "%(asctime)s %(name)s - [%(levelname)s]: %(message)s"  # 日志输出格式
 
 # 在计算文件哈希值时允许一次性打开的最大文件大小(MB)，提高此参数可以加快大文件的计算速度，但是会增加内存消耗
 MaxMemoryUsageAllow = (1024 * 1024) * 1024
