@@ -85,8 +85,9 @@ class Oss_Operation(object):
         Args:
             local_file_name (str): 本地文件路径
             remote_object_name (str): 远程文件路径
-            storage_class (str, 可选): Object的存储类型，取值：Standard、IA、Archive和ColdArchive。默认值可在config中配置
+            storage_class (str, 可选): Object的存储类型，取值：Standard、IA、Archive和ColdArchive。默认值为Standard
             file_sha256 (str, 可选): 如不提供将会自动计算本地文件sha256
+            cache_control (str, 可选)
             check_sha256_before_uplode (bool, 可选): 是否在上传之前对比远端文件的sha256，如相同则跳过上传
         """
         if not file_sha256:
@@ -132,18 +133,22 @@ class Oss_Operation(object):
                     time.sleep(10)
         return 200
 
-    def Download_Decrypted_File(self, local_file_name, remote_object_name):
+    def Download_Decrypted_File(self, local_file_name, remote_object_name, versionId=None):
         """从OSS下载并解密文件
 
         Args:
             local_file_name (str)
             remote_object_name (str)
+            versionId (str, 可选)
         """
         retry_count = 0
         while True:
             try:
                 retry_count += 1
-                result = self.__bucket.get_object_to_file(remote_object_name, local_file_name)
+                if versionId:
+                    result = self.__bucket.get_object_to_file(remote_object_name, local_file_name, params={'versionId': versionId})
+                else:
+                    result = self.__bucket.get_object_to_file(remote_object_name, local_file_name)
                 break
             except (oss2.exceptions.ClientError, oss2.exceptions.RequestError, ConnectionResetError) as err:
                 if retry_count < self.__MAX_RETRIES:

@@ -85,7 +85,7 @@ if __name__ == "__main__":
     for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
         i = i + 1
         if i == 2500:
-            time.sleep(20)
+            time.sleep(10)
             t = 0
         sha256 = oss_sync_libs.Calculate_Local_File_sha256(path)
         if sha256 == False:
