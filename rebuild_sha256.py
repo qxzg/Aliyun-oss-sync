@@ -21,6 +21,7 @@ def Get_Remote_sha256(obj):
             objectmeta = bucket.head_object(obj).headers
             break
         except:
+            print('retrying on file "%s"' % (obj))
             time.sleep(15)
     if 'x-oss-meta-sha256' in objectmeta:
         return objectmeta['x-oss-meta-sha256']
@@ -39,7 +40,6 @@ for obj in oss2.ObjectIteratorV2(bucket, prefix=config.remote_bace_dir):
         err_files.append(obj)
     else:
         sha256_to_files[obj[11:]] = sha256
-        break
 with open('sha256-rebuild.json', 'w') as fobj:
     json.dump(sha256_to_files, fobj)
 print(err_files)
