@@ -18,7 +18,48 @@ import config
 logger = logging.getLogger("oss_sync_libs")
 
 
-def Calculate_Local_File_sha256(file_name):
+class Colored(object):
+    BLACK = '\033[0;30m'       # 红色
+    RED = '\033[0;31m'       # 红色
+    GREEN = '\033[0;32m'     # 绿色
+    YELLOW = '\033[0;33m'    # 黄色
+    BLUE = '\033[0;34m'      # 蓝色
+    FUCHSIA = '\033[0;35m'   # 紫红色
+    CYAN = '\033[0;36m'      # 青蓝色
+    WHITE = '\033[0;37m'     # 白色
+
+    #: no color
+    END = '\033[0m'      # 终端默认颜色
+
+    def color_str(self, color, s):
+        return '%s%s%s' % (getattr(self, color), str(s), self.END)
+
+    def black(self, s: str):
+        return self.color_str('BLACK', s)
+
+    def red(self, s: str):
+        return self.color_str('RED', s)
+
+    def green(self, s: str):
+        return self.color_str('GREEN', s)
+
+    def yellow(self, s: str):
+        return self.color_str('YELLOW', s)
+
+    def blue(self, s: str):
+        return self.color_str('BLUE', s)
+
+    def fuchsia(self, s: str):
+        return self.color_str('FUCHSIA', s)
+
+    def cyan(self, s: str):
+        return self.color_str('CYAN', s)
+
+    def white(self, s: str):
+        return self.color_str('WHITE', s)
+
+
+def Calculate_Local_File_sha256(file_name: str):
     """计算sha256
 
     Args:
@@ -166,7 +207,7 @@ class Oss_Operation(object):
                 return 404
         return result
 
-    def Delete_Remote_files(self, delete_list):
+    def Delete_Remote_files(self, delete_list: list):
         """删除OSS中的文件
 
         Args:
@@ -179,7 +220,7 @@ class Oss_Operation(object):
             self.__bucket.batch_delete_objects(delete_list[i * 1000:(i * 1000) + 999])
         return
 
-    def Copy_remote_files(self, copy_list, storage_class='Standard'):
+    def Copy_remote_files(self, copy_list: dict, storage_class='Standard'):
         """复制远程文件
 
         Args:
@@ -209,7 +250,7 @@ class Oss_Operation(object):
         else:
             return False
 
-    def Get_Remote_File_Meta(self, remote_object, versionId=None):
+    def Get_Remote_File_Meta(self, remote_object: str, versionId=None):
         """获取一个远程文件的元信息
 
         Args:

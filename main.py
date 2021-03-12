@@ -28,10 +28,11 @@ logger.addHandler(fhlr)
 
 if __name__ == "__main__":
 
+    color = oss_sync_libs.Colored()
     oss_sync_libs.chaek_configs()
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
-    oss = oss_sync_libs.Oss_Operation(str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % config.KMSAccessKeyId)))
+    oss = oss_sync_libs.Oss_Operation(str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % color.red(config.KMSAccessKeyId))))
 
 ######################################################################
 # else
@@ -63,8 +64,8 @@ if __name__ == "__main__":
                     oss_waste_size += oss_block_size - file_size
     totle_file_size = totle_file_size / (1024 * 1024 * 1024)
     oss_waste_size = oss_waste_size / (1024 * 1024 * 1024)
-    logger.info("备份文件扫描完成\n备份文件总数：%d\n备份文件总大小：%.2f GB\n实际占用OSS大小：%.2f GB\n浪费的OSS容量：%.2f GB\n存储类型为：%s" %
-                (totle_file_num, totle_file_size, (oss_waste_size + totle_file_size), oss_waste_size, config.default_storage_class))
+    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s GB\n实际占用OSS大小：%s GB\n浪费的OSS容量：%s GB\n存储类型为：%s" %
+                (color.red(totle_file_num), color.red(round(totle_file_size, 2)), color.red(round(oss_waste_size + totle_file_size, 2)), color.red(round(oss_waste_size, 2)), color.red(config.default_storage_class)))
     if not str(input("确认继续请输入Y，否则输入N：")) in ['y', 'Y']:
         exit()
 
@@ -80,7 +81,7 @@ if __name__ == "__main__":
 # else:
     copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
     uplode_list = []  # 需要上传的文件列表
-    logger.info("开始上传文件")
+    logger.info(color.yellow("开始上传文件"))
     i = 0
     for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
         i = i + 1
@@ -162,5 +163,5 @@ if __name__ == "__main__":
     uplode_file_size = 0.0
     for path in uplode_list:
         uplode_file_size += os.path.getsize(path)
-    logger.info("\n复制的文件总数：%d\n删除的文件总数：%d\n上传的文件总数：%d\n上传的文件总大小：%.2f GB" %
-                (len(copy_list), len(delete_list), len(uplode_list), uplode_file_size / (1024 * 1024 * 1024)))
+    logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s GB" %
+                (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(uplode_list)), color.red(round(uplode_file_size / (1024 * 1024 * 1024), 2))))
