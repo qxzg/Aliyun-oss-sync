@@ -10,8 +10,8 @@ import config
 
 
 api_config = OpenApiModels.Config(
-    access_key_id=config.AccessKeyId,
-    access_key_secret=config.AccessKeySecret,
+    access_key_id=config.OSSAccessKeyId,
+    access_key_secret=config.OSSAccessKeySecret,
     endpoint='kms.%s.aliyuncs.com' % (config.KMSRegion)
 )
 client = KmsClient(api_config)
