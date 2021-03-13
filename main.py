@@ -13,7 +13,7 @@ from rich.progress import (BarColumn, Progress, ProgressColumn,
 
 import config
 from oss_sync_libs import (Calculate_Local_File_sha256, Chaek_Configs, Colored,
-                           FileCount, Oss_Operation)
+                           FileCount, Oss_Operation, SCT_Push)
 
 logger = logging.getLogger("main")
 logger.setLevel(config.LogLevel)
@@ -178,3 +178,5 @@ if __name__ == "__main__":
         uplode_file_size += os.path.getsize(path)
     logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s GB" %
                 (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(uplode_list)), color.red(round(uplode_file_size / (1024 * 1024 * 1024), 2))))
+    SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%.2f GB" %
+             (len(copy_list), len(delete_list), len(uplode_list), uplode_file_size / (1024 * 1024 * 1024)))

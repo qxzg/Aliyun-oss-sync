@@ -8,6 +8,7 @@ from getpass import getpass
 
 import crcmod._crcfunext  # https://help.aliyun.com/document_detail/85288.html#h2-url-5
 import oss2
+import requests
 from alibabacloud_kms20160120 import models as KmsModels
 from alibabacloud_kms20160120.client import Client as KmsClient
 from alibabacloud_tea_openapi import models as OpenApiModels
@@ -58,6 +59,17 @@ class Colored(object):
 
     def white(self, s: str):
         return self.color_str('WHITE', s)
+
+
+def SCT_Push(title: str, message: str) -> bool:
+    url = "https://sctapi.ftqq.com/%s.send" % (config.SCT_Send_Key)
+    sc_req = requests.post(url=url, data={'title': title, 'desp': message})
+    if sc_req.json()['data']['error'] == "SUCCESS":
+        logger.info("SCT Push Success!")
+        return True
+    else:
+        logger.exception("SCT Push ERROR! "+sc_req.json())
+        return False
 
 
 class FileCount(ProgressColumn):
