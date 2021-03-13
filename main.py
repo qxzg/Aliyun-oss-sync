@@ -35,7 +35,7 @@ if __name__ == "__main__":
     Chaek_Configs()
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
-    oss = Oss_Operation(str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % color.red(config.KMSAccessKeyId))))
+    oss = Oss_Operation()
 
 ######################################################################
 # else

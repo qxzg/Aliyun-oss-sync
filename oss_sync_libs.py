@@ -109,6 +109,9 @@ class Oss_Operation(object):
 
     def __init__(self, KMSAccessKeySecret=None):
         oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
+        color = Colored()
+        if not KMSAccessKeySecret:
+            KMSAccessKeySecret = str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % color.red(config.KMSAccessKeyId)))
         self.__OssEndpoint = 'https://' + config.OssEndpoint
         self.__bucket = oss2.CryptoBucket(
             oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret),
