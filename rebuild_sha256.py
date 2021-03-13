@@ -9,7 +9,6 @@ import time
 import oss2
 
 import config
-import oss_sync_libs
 
 bucket = oss2.Bucket(oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret), 'https://' + config.OssEndpoint, config.bucket_name)
 rebuild_file = 'sha256-rebuild.json'
