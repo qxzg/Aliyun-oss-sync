@@ -8,9 +8,12 @@ import time
 from getpass import getpass
 
 import oss2
+from rich.progress import (BarColumn, Progress, ProgressColumn,
+                           TimeElapsedColumn, TimeRemainingColumn)
 
 import config
-import oss_sync_libs
+from oss_sync_libs import (Calculate_Local_File_sha256, Chaek_Configs, Colored,
+                           FileCount, Oss_Operation)
 
 logger = logging.getLogger("main")
 logger.setLevel(config.LogLevel)
@@ -28,18 +31,17 @@ logger.addHandler(fhlr)
 
 if __name__ == "__main__":
 
-    color = oss_sync_libs.Colored()
-    oss_sync_libs.chaek_configs()
+    color = Colored()
+    Chaek_Configs()
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
-    oss = oss_sync_libs.Oss_Operation(str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % color.red(config.KMSAccessKeyId))))
+    oss = Oss_Operation(str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % color.red(config.KMSAccessKeyId))))
 
 ######################################################################
 # else
     local_files_sha256 = {}  # 本地文件与sha256对应表
 # 扫描备份目录，获取文件列表
     start_time = time.time()
-    totle_file_num = 0
     totle_file_size = 0
     oss_waste_size = 0
     if config.default_storage_class == "Standard":
@@ -58,73 +60,85 @@ if __name__ == "__main__":
                 if file_size == 0:
                     continue  # 排除文件大小为0的空文件
                 local_files_sha256[relative_path] = ""
-                totle_file_num += 1
                 totle_file_size += file_size
                 if file_size < oss_block_size:
                     oss_waste_size += oss_block_size - file_size
-    totle_file_size = totle_file_size / (1024 * 1024 * 1024)
+    totle_file_size_GB = totle_file_size / (1024 * 1024 * 1024)
     oss_waste_size = oss_waste_size / (1024 * 1024 * 1024)
     logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s GB\n实际占用OSS大小：%s GB\n浪费的OSS容量：%s GB\n存储类型为：%s" %
-                (color.red(totle_file_num), color.red(round(totle_file_size, 2)), color.red(round(oss_waste_size + totle_file_size, 2)), color.red(round(oss_waste_size, 2)), color.red(config.default_storage_class)))
+                (color.red(len(local_files_sha256)), color.red(round(totle_file_size_GB, 2)), color.red(round(oss_waste_size + totle_file_size_GB, 2)), color.red(round(oss_waste_size, 2)), color.red(config.default_storage_class)))
     if not str(input("确认继续请输入Y，否则输入N：")) in ['y', 'Y']:
         exit()
 
-    # 获取远程文件json
-    oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
-    with open(remote_json_filename, 'r') as fobj:
-        remote_files_sha256 = json.load(fobj)
-    sha256_to_remote_file = {}  # sha256与远程文件对应表
-    for file, sha256 in remote_files_sha256.items():
-        sha256_to_remote_file[sha256] = file
+    with Progress(
+        "[progress.description]{task.description}", BarColumn(),
+        "[progress.percentage]{task.percentage:>3.2f}%",
+        FileCount(),
+        "[progress.elapsed]已用时间 ", TimeElapsedColumn(),
+        "[progress.remaining]预计剩余时间", TimeRemainingColumn()
+    ) as progress:
+        task = progress.add_task("[red]正在上传", total=len(local_files_sha256), start=False)
 
-# 计算备份文件的sha256
-# else:
-    copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
-    uplode_list = []  # 需要上传的文件列表
-    logger.info(color.yellow("开始上传文件"))
-    i = 0
-    for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
-        i = i + 1
-        if i == 2500:
-            time.sleep(10)
-            t = 0
-        sha256 = oss_sync_libs.Calculate_Local_File_sha256(path)
-        if sha256 == False:
-            del(local_files_sha256[path])
-            logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
-            continue
-        local_files_sha256[path] = sha256
-        if path in remote_files_sha256:
-            if remote_files_sha256[path] == sha256:
+        # 获取远程文件json
+        oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
+        with open(remote_json_filename, 'r') as fobj:
+            remote_files_sha256 = json.load(fobj)
+        sha256_to_remote_file = {}  # sha256与远程文件对应表
+        for file, sha256 in remote_files_sha256.items():
+            sha256_to_remote_file[sha256] = file
+
+    # 计算备份文件的sha256
+    # else:
+        copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
+        uplode_list = []  # 需要上传的文件列表
+        logger.info(color.yellow("开始上传文件"))
+        progress.start_task(task)
+        i = 0
+        for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
+            progress.update(task, advance=1)
+            i = i + 1
+            if i == 2500:
+                progress.stop_task(task)
+                time.sleep(30)
+                progress.start_task(task)
+                t = 0
+            sha256 = Calculate_Local_File_sha256(path)
+            if sha256 == False:
+                del(local_files_sha256[path])
+                logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
                 continue
+            local_files_sha256[path] = sha256
+            if path in remote_files_sha256:
+                if remote_files_sha256[path] == sha256:
+                    continue
+                elif sha256 in sha256_to_remote_file:
+                    copy_list[config.remote_bace_dir + path] = config.remote_bace_dir + sha256_to_remote_file[sha256]
+                else:  # 上传文件并覆盖
+                    try:
+                        oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class,
+                                                  file_sha256=sha256, check_sha256_before_uplode=False)
+                    except FileNotFoundError:
+                        logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
+                        del(local_files_sha256[path])
+                    except oss2.exceptions.RequestError:
+                        logger.warning("由于网络错误无法上传文件%s" % path)
+                        del(local_files_sha256[path])
+                    else:
+                        uplode_list.append(path)
             elif sha256 in sha256_to_remote_file:
                 copy_list[config.remote_bace_dir + path] = config.remote_bace_dir + sha256_to_remote_file[sha256]
-            else:  # 上传文件并覆盖
+            else:  # 上传新增文件
                 try:
                     oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class,
                                               file_sha256=sha256, check_sha256_before_uplode=False)
                 except FileNotFoundError:
-                    logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
+                    logger.warning("上传时无法找到文件%s" % path)
                     del(local_files_sha256[path])
                 except oss2.exceptions.RequestError:
                     logger.warning("由于网络错误无法上传文件%s" % path)
                     del(local_files_sha256[path])
                 else:
                     uplode_list.append(path)
-        elif sha256 in sha256_to_remote_file:
-            copy_list[config.remote_bace_dir + path] = config.remote_bace_dir + sha256_to_remote_file[sha256]
-        else:  # 上传新增文件
-            try:
-                oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class,
-                                          file_sha256=sha256, check_sha256_before_uplode=False)
-            except FileNotFoundError:
-                logger.warning("上传时无法找到文件%s" % path)
-                del(local_files_sha256[path])
-            except oss2.exceptions.RequestError:
-                logger.warning("由于网络错误无法上传文件%s" % path)
-                del(local_files_sha256[path])
-            else:
-                uplode_list.append(path)
 
     if len(copy_list) != 0:
         processed = []

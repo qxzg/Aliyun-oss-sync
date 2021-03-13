@@ -12,6 +12,7 @@ from alibabacloud_kms20160120 import models as KmsModels
 from alibabacloud_kms20160120.client import Client as KmsClient
 from alibabacloud_tea_openapi import models as OpenApiModels
 from numpy import square
+from rich.progress import Progress, ProgressColumn, Text
 
 import config
 
@@ -57,6 +58,13 @@ class Colored(object):
 
     def white(self, s: str):
         return self.color_str('WHITE', s)
+
+
+class FileCount(ProgressColumn):
+    """呈现剩余文件数量和总数, e.g. '已处理 666 / 共 23333 个文件'."""
+
+    def render(self, task: "Task"):
+        return Text(f" 已处理 {int(task.completed)} / 共 {int(task.total)} 个文件 ", style="progress.download")
 
 
 def Calculate_Local_File_sha256(file_name: str):
@@ -299,7 +307,7 @@ class Oss_Operation(object):
             return 200
 
 
-def chaek_configs():
+def Chaek_Configs():
     # 检查目录参数合法性
     if config.local_bace_dir[0] != '/' or config.local_bace_dir[-1] != '/':
         logger.critical("本地工作目录(local_bace_dir)必须为带有前导和后导/的格式")
