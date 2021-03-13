@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import hashlib
+import itertools
 import json
 import logging
 import os
@@ -14,6 +15,8 @@ from alibabacloud_kms20160120.client import Client as KmsClient
 from alibabacloud_tea_openapi import models as OpenApiModels
 from numpy import square
 from rich.progress import Progress, ProgressColumn, Text
+from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
+                      wait_exponential)
 
 import config
 
@@ -230,6 +233,7 @@ class Oss_Operation(object):
                 return 404
         return result
 
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(7))
     def Delete_Remote_files(self, delete_list: list):
         """删除OSS中的文件
 
@@ -243,6 +247,7 @@ class Oss_Operation(object):
             self.__bucket.batch_delete_objects(delete_list[i * 1000:(i * 1000) + 999])
         return
 
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(7))
     def Copy_remote_files(self, copy_list: dict, storage_class='Standard'):
         """复制远程文件
 
