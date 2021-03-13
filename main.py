@@ -74,8 +74,7 @@ if __name__ == "__main__":
         "[progress.description]{task.description}", BarColumn(),
         "[progress.percentage]{task.percentage:>3.2f}%",
         FileCount(),
-        "[progress.elapsed]已用时间 ", TimeElapsedColumn(),
-        "[progress.remaining]预计剩余时间", TimeRemainingColumn()
+        "[progress.elapsed]已用时间", TimeElapsedColumn(),
     ) as progress:
         task = progress.add_task("[red]正在上传", total=len(local_files_sha256), start=False)
 
