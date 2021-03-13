@@ -90,7 +90,6 @@ if __name__ == "__main__":
     # else:
         copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
         uplode_list = []  # 需要上传的文件列表
-        logger.info(color.yellow("开始上传文件"))
         progress.start_task(task)
         i = 0
         for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
