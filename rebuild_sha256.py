@@ -9,6 +9,7 @@ import time
 import oss2
 
 import config
+from oss_sync_libs import SCT_Push
 
 bucket = oss2.Bucket(oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret), 'https://' + config.OssEndpoint, config.bucket_name)
 rebuild_file = 'sha256-rebuild.json'
@@ -57,3 +58,4 @@ if __name__ == '__main__':
         json.dump(sha256_to_files, fobj)
     print(err_files)
     print("无sha256的文件总数：" + str(len(err_files)))
+    SCT_Push("[rebuild-sha256]重建完成", "#### sha256.json已重建完成，请登录服务器检查")
