@@ -96,10 +96,8 @@ if __name__ == "__main__":
             progress.update(task, advance=1)
             i = i + 1
             if i == 2500:
-                progress.stop_task(task)
                 time.sleep(30)
-                progress.start_task(task)
-                t = 0
+                i = 0
             sha256 = Calculate_Local_File_sha256(path)
             if sha256 == False:
                 del(local_files_sha256[path])
