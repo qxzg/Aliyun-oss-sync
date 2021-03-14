@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import sys
-import time
+from time import sleep, time
 from getpass import getpass
 
 import oss2
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 # else
     local_files_sha256 = {}  # 本地文件与sha256对应表
 # 扫描备份目录，获取文件列表
-    start_time = time.time()
+    start_time = time()
     totle_file_size = 0
     oss_waste_size = 0
     if config.default_storage_class == "Standard":
@@ -93,10 +93,8 @@ if __name__ == "__main__":
         progress.start_task(task)
         i = 0
         for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
-            progress.update(task, advance=1)
-            i = i + 1
-            if i == 2500:
-                time.sleep(30)
+            if i >= 2500:
+                sleep(30)
                 i = 0
             sha256 = Calculate_Local_File_sha256(path)
             if sha256 == False:
@@ -110,6 +108,7 @@ if __name__ == "__main__":
                 elif sha256 in sha256_to_remote_file:
                     copy_list[config.remote_bace_dir + path] = config.remote_bace_dir + sha256_to_remote_file[sha256]
                 else:  # 上传文件并覆盖
+                    i += 1
                     try:
                         oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class,
                                                   file_sha256=sha256, check_sha256_before_uplode=False)
@@ -124,6 +123,7 @@ if __name__ == "__main__":
             elif sha256 in sha256_to_remote_file:
                 copy_list[config.remote_bace_dir + path] = config.remote_bace_dir + sha256_to_remote_file[sha256]
             else:  # 上传新增文件
+                i += 1
                 try:
                     oss.Uplode_File_Encrypted(path, config.remote_bace_dir + path, storage_class=config.default_storage_class,
                                               file_sha256=sha256, check_sha256_before_uplode=False)
@@ -135,6 +135,7 @@ if __name__ == "__main__":
                     del(local_files_sha256[path])
                 else:
                     uplode_list.append(path)
+            progress.update(task, advance=1)
 
     if len(copy_list) != 0:
         processed = []
@@ -142,7 +143,7 @@ if __name__ == "__main__":
             if src_obj not in processed:
                 oss.Restore_Remote_File(src_obj)
                 processed.append(src_obj)
-        time.sleep(90)
+        sleep(90)
         oss.Copy_remote_files(copy_list, storage_class=config.default_storage_class)
         del processed
     delete_list = []  # 需要删除的文件列表

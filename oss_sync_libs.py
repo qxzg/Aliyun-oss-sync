@@ -4,7 +4,7 @@ import itertools
 import json
 import logging
 import os
-import time
+from time import sleep 
 from getpass import getpass
 
 import crcmod._crcfunext  # https://help.aliyun.com/document_detail/85288.html#h2-url-5
@@ -194,10 +194,10 @@ class Oss_Operation(object):
                 else:
                     logger.exception("[Uplode_File_Encrypted] Error")
                     raise oss2.exceptions.RequestError
-                time.sleep(square(retry_count) * 10)
+                sleep(square(retry_count) * 10)
                 while os.system(self.__ping_cmd) != 0:
                     logger.error("无法连接网络，10秒后重试")
-                    time.sleep(10)
+                    sleep(10)
         return 200
 
     def Download_Decrypted_File(self, local_file_name, remote_object_name, versionId=None):
@@ -224,10 +224,10 @@ class Oss_Operation(object):
                 else:
                     logger.exception("[Download_File_Encrypted] Error")
                     raise oss2.exceptions.RequestError
-                time.sleep(square(retry_count) * 10)
+                sleep(square(retry_count) * 10)
                 while os.system(self.__ping_cmd) != 0:
                     logger.error("无法连接网络，10秒后重试")
-                    time.sleep(10)
+                    sleep(10)
             except oss2.exceptions.NoSuchKey:
                 logger.exception("无法从oss下载文件" + remote_object_name)
                 return 404
@@ -266,7 +266,7 @@ class Oss_Operation(object):
                 break
             except oss2.exceptions.ClientError:
                 logger.exception("Verify_Remote_File_Integrity error, retrying time %d" % retry_count)
-                time.sleep(retry_count)
+                sleep(retry_count)
                 if retry_count >= self.__MAX_RETRIES:
                     logger.exception("[Verify_Remote_File_Integrity] Error")
                     raise oss2.exceptions.ClientError
