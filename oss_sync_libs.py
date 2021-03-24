@@ -351,7 +351,7 @@ def StrOfSize(size: int) -> str:
     integer, remainder, level = __strofsize(size, 0, 0)
     if level + 1 > len(units):
         level = -1
-    return ('%.3f %s' % (integer + remainder, units[level]))
+    return ('%.3f %s' % (integer + remainder * 0.001, units[level]))
 
 
 def Chaek_Configs():
