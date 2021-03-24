@@ -9,7 +9,7 @@ from getpass import getpass
 
 import oss2
 from rich.progress import (BarColumn, Progress, ProgressColumn,
-                           TimeElapsedColumn, TimeRemainingColumn)
+                           TimeElapsedColumn, TimeRemainingColumn, TextColumn)
 
 import config
 from oss_sync_libs import (Calculate_Local_File_sha256, Chaek_Configs, Colored,
@@ -69,12 +69,14 @@ if __name__ == "__main__":
         exit()
 
     with Progress(
-        "[progress.description]{task.description}", BarColumn(),
+        "[progress.description]{task.description}",
+        TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
+        BarColumn(),
         "[progress.percentage]{task.percentage:>3.2f}%",
         FileCount(),
         "[progress.elapsed]已用时间", TimeElapsedColumn(),
     ) as progress:
-        task = progress.add_task("[red]正在上传", total=len(local_files_sha256), start=False)
+        task = progress.add_task("[red]正在上传", total=len(local_files_sha256), start=False, filename="")
 
         # 获取远程文件json
         oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
@@ -91,6 +93,7 @@ if __name__ == "__main__":
         progress.start_task(task)
         i = 0
         for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
+            progress.update(task, advance=1, filename=path)
             if i >= 2500:
                 sleep(30)
                 i = 0
@@ -133,7 +136,6 @@ if __name__ == "__main__":
                     del(local_files_sha256[path])
                 else:
                     uplode_list.append(path)
-            progress.update(task, advance=1)
 
     if len(copy_list) != 0:
         processed = []
