@@ -4,8 +4,9 @@ import itertools
 import json
 import logging
 import os
-from time import sleep
+import subprocess
 from getpass import getpass
+from time import sleep
 
 import crcmod._crcfunext  # https://help.aliyun.com/document_detail/85288.html#h2-url-5
 import oss2
@@ -136,13 +137,15 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
         self.__MAX_RETRIES = 3
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
+        self.__ping_cmd = ["ping"]
         if os.name == 'nt':
-            self.__ping_cmd = "ping -n 1 " + config.OssEndpoint
+            self.__ping_cmd.append("-n", "1")
         elif os.name == 'posix':
-            self.__ping_cmd = "ping -c 1 " + config.OssEndpoint
+            self.__ping_cmd.append("-c", "1")
         else:
             raise OSError("无法识别操作系统")
-        if os.system(self.__ping_cmd) != 0:
+        self.__ping_cmd.append(config.OssEndpoint)
+        if subprocess.run(self.__ping_cmd, capture_output=True).returncode != 0:
             logger.error("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
             raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
 
@@ -195,7 +198,7 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
                     logger.exception("[Uplode_File_Encrypted] Error")
                     raise oss2.exceptions.RequestError
                 sleep(square(retry_count) * 10)
-                while os.system(self.__ping_cmd) != 0:
+                while subprocess.run(self.__ping_cmd, capture_output=True).returncode != 0:
                     logger.error("无法连接网络，10秒后重试")
                     sleep(10)
         return 200
@@ -225,7 +228,7 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
                     logger.exception("[Download_File_Encrypted] Error")
                     raise oss2.exceptions.RequestError
                 sleep(square(retry_count) * 10)
-                while os.system(self.__ping_cmd) != 0:
+                while subprocess.run(self.__ping_cmd, capture_output=True).returncode != 0:
                     logger.error("无法连接网络，10秒后重试")
                     sleep(10)
             except oss2.exceptions.NoSuchKey:
@@ -325,6 +328,31 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
             return 404
         else:
             return 200
+
+
+def StrOfSize(size: int) -> str:
+    """存储单位人性化转换，精确为最大单位值+小数点后三位
+
+    Args:
+        size (int)
+
+    Returns:
+        str
+    """
+    def __strofsize(integer, remainder, level):
+        if integer >= 1024:
+            remainder = integer % 1024
+            integer //= 1024
+            level += 1
+            return __strofsize(integer, remainder, level)
+        else:
+            return integer, remainder, level
+    size = int(size)
+    units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+    integer, remainder, level = __strofsize(size, 0, 0)
+    if level + 1 > len(units):
+        level = -1
+    return ('%.3f %s' % (integer + remainder, units[level]))
 
 
 def Chaek_Configs():

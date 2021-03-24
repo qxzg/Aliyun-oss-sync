@@ -13,7 +13,7 @@ from rich.progress import (BarColumn, Progress, ProgressColumn,
 
 import config
 from oss_sync_libs import (Calculate_Local_File_sha256, Chaek_Configs, Colored,
-                           FileCount, Oss_Operation, SCT_Push)
+                           FileCount, Oss_Operation, SCT_Push, StrOfSize)
 
 logger = logging.getLogger("main")
 logger.setLevel(config.LogLevel)
@@ -63,10 +63,8 @@ if __name__ == "__main__":
                 totle_file_size += file_size
                 if file_size < oss_block_size:
                     oss_waste_size += oss_block_size - file_size
-    totle_file_size_GB = totle_file_size / (1024 * 1024 * 1024)
-    oss_waste_size = oss_waste_size / (1024 * 1024 * 1024)
-    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s GB\n实际占用OSS大小：%s GB\n浪费的OSS容量：%s GB\n存储类型为：%s" %
-                (color.red(len(local_files_sha256)), color.red(round(totle_file_size_GB, 2)), color.red(round(oss_waste_size + totle_file_size_GB, 2)), color.red(round(oss_waste_size, 2)), color.red(config.default_storage_class)))
+    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s" %
+                (color.red(len(local_files_sha256)), color.red(StrOfSize(totle_file_size)), color.red(StrOfSize(oss_waste_size + totle_file_size)), color.red(StrOfSize(oss_waste_size)), color.red(config.default_storage_class)))
     if not str(input("确认继续请输入Y，否则输入N：")) in ['y', 'Y']:
         exit()
 
@@ -174,7 +172,7 @@ if __name__ == "__main__":
     uplode_file_size = 0.0
     for path in uplode_list:
         uplode_file_size += os.path.getsize(path)
-    logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s GB" %
-                (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(uplode_list)), color.red(round(uplode_file_size / (1024 * 1024 * 1024), 2))))
-    SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%.2f GB" %
-             (len(copy_list), len(delete_list), len(uplode_list), uplode_file_size / (1024 * 1024 * 1024)))
+    logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s" %
+                (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(uplode_list)), color.red(StrOfSize(uplode_file_size))))
+    SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s" %
+             (len(copy_list), len(delete_list), len(uplode_list), StrOfSize(uplode_file_size)))
