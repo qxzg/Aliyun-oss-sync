@@ -137,14 +137,13 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
         self.__MAX_RETRIES = 3
         self.__bucket_name = config.bucket_name
         self.__remote_bace_dir = config.remote_bace_dir
-        self.__ping_cmd = ["ping"]
+        self.__ping_cmd = ["ping", "1", config.OssEndpoint]
         if os.name == 'nt':
-            self.__ping_cmd.append("-n", "1")
+            self.__ping_cmd.insert(1, "-n")
         elif os.name == 'posix':
-            self.__ping_cmd.append("-c", "1")
+            self.__ping_cmd.insert(1, "-c")
         else:
             raise OSError("无法识别操作系统")
-        self.__ping_cmd.append(config.OssEndpoint)
         if subprocess.run(self.__ping_cmd, capture_output=True).returncode != 0:
             logger.error("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
             raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
