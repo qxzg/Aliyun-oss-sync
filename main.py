@@ -42,7 +42,7 @@ if __name__ == "__main__":
     local_files_sha256 = {}  # 本地文件与sha256对应表
 # 扫描备份目录，获取文件列表
     start_time = time.time()
-    totle_file_size = 0
+    total_file_size = 0
     oss_waste_size = 0
     if config.default_storage_class == "Standard":
         oss_block_size = 0
@@ -60,11 +60,11 @@ if __name__ == "__main__":
                 if file_size == 0:
                     continue  # 排除文件大小为0的空文件
                 local_files_sha256[relative_path] = ""
-                totle_file_size += file_size
+                total_file_size += file_size
                 if file_size < oss_block_size:
                     oss_waste_size += oss_block_size - file_size
     logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s" %
-                (color.red(len(local_files_sha256)), color.red(StrOfSize(totle_file_size)), color.red(StrOfSize(oss_waste_size + totle_file_size)), color.red(StrOfSize(oss_waste_size)), color.red(config.default_storage_class)))
+                (color.red(len(local_files_sha256)), color.red(StrOfSize(total_file_size)), color.red(StrOfSize(oss_waste_size + total_file_size)), color.red(StrOfSize(oss_waste_size)), color.red(config.default_storage_class)))
     if not str(input("确认继续请输入Y，否则输入N：")) in ['y', 'Y']:
         exit()
 
