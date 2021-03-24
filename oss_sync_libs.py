@@ -4,7 +4,7 @@ import itertools
 import json
 import logging
 import os
-from time import sleep 
+from time import sleep
 from getpass import getpass
 
 import crcmod._crcfunext  # https://help.aliyun.com/document_detail/85288.html#h2-url-5
@@ -108,7 +108,7 @@ def Calculate_Local_File_sha256(file_name: str):
     return m.hexdigest()
 
 
-class Oss_Operation(object):
+class Oss_Operation(object):  # TODO 使用@retry重写重试部分
 
     def __init__(self, KMSAccessKeySecret=None):
         oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
