@@ -4,12 +4,12 @@ import json
 import logging
 import os
 import sys
-from time import sleep, time
 from getpass import getpass
+import time
 
 import oss2
-from rich.progress import (BarColumn, Progress, ProgressColumn,
-                           TimeElapsedColumn, TimeRemainingColumn, TextColumn)
+from rich.progress import (BarColumn, Progress, ProgressColumn, TextColumn,
+                           TimeElapsedColumn, TimeRemainingColumn)
 
 import config
 from oss_sync_libs import (Calculate_Local_File_sha256, Chaek_Configs, Colored,
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 # else
     local_files_sha256 = {}  # 本地文件与sha256对应表
 # 扫描备份目录，获取文件列表
-    start_time = time()
+    start_time = time.time()
     totle_file_size = 0
     oss_waste_size = 0
     if config.default_storage_class == "Standard":
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         i = 0
         for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
             if i >= 2500:
-                sleep(30)
+                time.sleep(30)
                 i = 0
             progress.update(task, description="[red]正在计算哈希", advance=1, filename=path)
             sha256 = Calculate_Local_File_sha256(path)
@@ -147,7 +147,7 @@ if __name__ == "__main__":
             if src_obj not in processed:
                 oss.Restore_Remote_File(src_obj)
                 processed.append(src_obj)
-        sleep(90)
+        time.sleep(90)
         oss.Copy_remote_files(copy_list, storage_class=config.default_storage_class)
         del processed
     delete_list = []  # 需要删除的文件列表
@@ -176,9 +176,10 @@ if __name__ == "__main__":
     logger.info("已删除的文件列表:\n" + str(delete_list))
     logger.info("已上传的文件列表:\n" + str(uplode_list))
     uplode_file_size = 0.0
+    total_time = time.strftime("%H:%M:%S", time.localtime(time.time() - start_time))
     for path in uplode_list:
         uplode_file_size += os.path.getsize(path)
-    logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s" %
-                (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(uplode_list)), color.red(StrOfSize(uplode_file_size))))
-    SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s" %
-             (len(copy_list), len(delete_list), len(uplode_list), StrOfSize(uplode_file_size)))
+    logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s\n总耗时：%s" %
+                (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(uplode_list)), color.red(StrOfSize(uplode_file_size)), total_time))
+    SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s  \n#### 总耗时：%s" %
+             (len(copy_list), len(delete_list), len(uplode_list), StrOfSize(uplode_file_size), total_time))
