@@ -80,7 +80,7 @@ class FileCount(ProgressColumn):
     """呈现剩余文件数量和总数, e.g. '已处理 666 / 共 23333 个文件'."""
 
     def render(self, task: "Task"):
-        return Text(f" 已处理 {int(task.completed)} / 共 {int(task.total)} 个文件 ", style="progress.download")
+        return Text(f"已处理 {int(task.completed)} / 共 {int(task.total)} 个文件", style="progress.download")
 
 
 def Calculate_Local_File_sha256(file_name: str):
@@ -174,7 +174,7 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
             try:
 
                 retry_count += 1
-                result = oss2.resumable_upload(
+                oss2.resumable_upload(
                     self.__bucket, remote_object_name, local_file_name,
                     store=oss2.ResumableStore(root=config.temp_dir),
                     multipart_threshold=1024*1024*50,

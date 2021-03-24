@@ -69,12 +69,15 @@ if __name__ == "__main__":
         exit()
 
     with Progress(
-        "[progress.description]{task.description}",
-        TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
         BarColumn(),
         "[progress.percentage]{task.percentage:>3.2f}%",
+        "•",
         FileCount(),
+        "•",
         "[progress.elapsed]已用时间", TimeElapsedColumn(),
+        "•",
+        "[progress.description]{task.description}",
+        TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
     ) as progress:
         task = progress.add_task("[red]正在准备上传...", total=len(local_files_sha256), start=False, filename="")
 
