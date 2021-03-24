@@ -76,7 +76,7 @@ if __name__ == "__main__":
         FileCount(),
         "[progress.elapsed]已用时间", TimeElapsedColumn(),
     ) as progress:
-        task = progress.add_task("[red]正在上传", total=len(local_files_sha256), start=False, filename="")
+        task = progress.add_task("[red]正在准备上传...", total=len(local_files_sha256), start=False, filename="")
 
         # 获取远程文件json
         oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
@@ -93,11 +93,12 @@ if __name__ == "__main__":
         progress.start_task(task)
         i = 0
         for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
-            progress.update(task, advance=1, filename=path)
             if i >= 2500:
                 sleep(30)
                 i = 0
+            progress.update(task, description="[red]正在计算哈希", advance=1, filename=path)
             sha256 = Calculate_Local_File_sha256(path)
+            progress.update(task, description="[red]正在上传文件")
             if sha256 == False:
                 del(local_files_sha256[path])
                 logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
