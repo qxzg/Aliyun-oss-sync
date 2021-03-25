@@ -69,9 +69,8 @@ if __name__ == "__main__":
         exit()
 
     with Progress(
-        BarColumn(),
         "[progress.percentage]{task.percentage:>3.2f}%",
-        "•",
+        BarColumn(),
         FileCount(),
         "•",
         "[progress.elapsed]已用时间", TimeElapsedColumn(),
