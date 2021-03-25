@@ -134,9 +134,6 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
             logger.critical("无法调用GenerateDataKey，请检查KMS相关配置")
             raise ValueError("无法调用GenerateDataKey，请检查KMS相关配置")
         del KMSAccessKeySecret
-        self.__MAX_RETRIES = 3
-        self.__bucket_name = config.bucket_name
-        self.__remote_bace_dir = config.remote_bace_dir
         self.__ping_cmd = ["ping", "1", config.OssEndpoint]
         if os.name == 'nt':
             self.__ping_cmd.insert(1, "-n")
@@ -190,7 +187,7 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
                 )
                 break
             except (oss2.exceptions.ClientError, oss2.exceptions.RequestError, ConnectionResetError) as err:
-                if retry_count < self.__MAX_RETRIES:
+                if retry_count < config.Max_Retries:
                     logger.error("[Uplode_File_Encrypted] error, retrying time %d" % retry_count)
                     logger.error(err)
                 else:
@@ -215,12 +212,12 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
             try:
                 retry_count += 1
                 if versionId:
-                    result = self.__bucket.get_object_to_file(remote_object_name, local_file_name, params={'versionId': versionId})
+                    self.__bucket.get_object_to_file(remote_object_name, local_file_name, params={'versionId': versionId})
                 else:
-                    result = self.__bucket.get_object_to_file(remote_object_name, local_file_name)
+                    self.__bucket.get_object_to_file(remote_object_name, local_file_name)
                 break
             except (oss2.exceptions.ClientError, oss2.exceptions.RequestError, ConnectionResetError) as err:
-                if retry_count < self.__MAX_RETRIES:
+                if retry_count < config.Max_Retries:
                     logger.error("[Download_File_Encrypted] error, retrying time %d" % retry_count)
                     logger.error(err)
                 else:
@@ -233,23 +230,19 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
             except oss2.exceptions.NoSuchKey:
                 logger.exception("无法从oss下载文件" + remote_object_name)
                 return 404
-        return result
+        return 200
 
-    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(7))
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
     def Delete_Remote_files(self, delete_list: list):
         """删除OSS中的文件
 
         Args:
             delete_list (list): 需要删除的文件列表，绝对对路径
-
-        Returns:
-            list: [description]
         """
         for i in range(0, (len(delete_list) // 1000) + 1):
             self.__bucket.batch_delete_objects(delete_list[i * 1000:(i * 1000) + 999])
-        return
 
-    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(7))
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
     def Copy_remote_files(self, copy_list: dict, storage_class='Standard'):
         """复制远程文件
 
@@ -257,21 +250,16 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
             copy_list (dits): Key:目标文件, velue:源文件
         """
         for dst_obj, src_obj in copy_list.items():
-            self.__bucket.copy_object(self.__bucket_name, src_obj, dst_obj, headers={'x-oss-storage-class': storage_class})
+            self.__bucket.copy_object(config.bucket_name, src_obj, dst_obj, headers={'x-oss-storage-class': storage_class})
 
-    def Verify_Remote_File_Integrity(self, remote_object):
-        retry_count = 0
-        while True:
-            try:
-                retry_count += 1
-                result = self.__bucket.get_object(remote_object)
-                break
-            except oss2.exceptions.ClientError:
-                logger.exception("Verify_Remote_File_Integrity error, retrying time %d" % retry_count)
-                sleep(retry_count)
-                if retry_count >= self.__MAX_RETRIES:
-                    logger.exception("[Verify_Remote_File_Integrity] Error")
-                    raise oss2.exceptions.ClientError
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError) | retry_if_exception_type(oss2.exceptions.ClientError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
+    def Verify_Remote_File_Integrity(self, remote_object) -> bool:
+        """校验远端文件哈希值，将文件下载、解密至内存中计算sha256并与oss header中的sha256比对
+
+        Args:
+            remote_object (str): 待校验的文件
+        """
+        result = self.__bucket.get_object(remote_object)
         sha256 = hashlib.sha256()
         for chunk in result:
             sha256.update(chunk)
@@ -398,6 +386,9 @@ def Chaek_Configs():
     if config.OssEndpoint.startswith("http"):
         logger.critical("OSS Endpoint请直接填写域名")
         raise ValueError("OSS Endpoint请直接填写域名")
+    if not config.Max_Retries:
+        logger.critical("无法找到Max_Retries参数")
+        raise ValueError("无法找到Max_Retries参数")
     return True
 
 

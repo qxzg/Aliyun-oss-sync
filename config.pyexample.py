@@ -13,6 +13,7 @@ remote_bace_dir = "nas-backup/"  # 上传至OSS时的路径
 backup_dirs = ["personal/", "www/nextcloud/data/"]  # 备份目录（相对于local_bace_dir, eg:data/）
 backup_exclude = ('personal/path/to/exclude',)  # 相对路径，将会在扫描本地目录是进行前缀匹配，如果只有一个参数是请保留一个逗号以确保为tuple类型
 temp_dir = "/tmp/oss-sync/"  # 临时文件位置，绝对路径
+Max_Retries = 5
 
 LogFile = "/root/oss-sync.log"  # 日志文件位置，推荐使用绝对路径
 LogLevel = "INFO"  # 日志级别，取值：DEBUG，INFO，WARNING，ERROR，CRITICAL
