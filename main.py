@@ -180,5 +180,6 @@ if __name__ == "__main__":
         uplode_file_size += os.path.getsize(path)
     logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s\n总耗时：%s" %
                 (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(uplode_list)), color.red(StrOfSize(uplode_file_size)), total_time))
-    SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s  \n#### 总耗时：%s" %
-             (len(copy_list), len(delete_list), len(uplode_list), StrOfSize(uplode_file_size), total_time))
+    if config.SCT_Send_Key:
+        SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s  \n#### 总耗时：%s" %
+                (len(copy_list), len(delete_list), len(uplode_list), StrOfSize(uplode_file_size), total_time))
