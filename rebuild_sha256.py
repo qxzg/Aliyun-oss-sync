@@ -60,4 +60,5 @@ if __name__ == '__main__':
     r_oss.Uplode_File_Encrypted(rebuild_file, 'sha256.json', check_sha256_before_uplode=True, storage_class='Standard')
     print(err_files)
     print("无sha256的文件总数：" + str(len(err_files)))
-    SCT_Push("[rebuild-sha256]重建完成", "#### sha256.json已重建完成，请登录服务器检查")
+    if config.SCT_Send_Key:
+        SCT_Push("[rebuild-sha256]重建完成", "#### sha256.json已重建完成，请登录服务器检查")
