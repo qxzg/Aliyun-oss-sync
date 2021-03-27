@@ -8,7 +8,6 @@ import subprocess
 from getpass import getpass
 from time import sleep
 
-import crcmod._crcfunext  # https://help.aliyun.com/document_detail/85288.html#h2-url-5
 import oss2
 import requests
 from alibabacloud_kms20160120 import models as KmsModels
@@ -33,7 +32,6 @@ class Colored(object):
     FUCHSIA = '\033[0;35m'   # 紫红色
     CYAN = '\033[0;36m'      # 青蓝色
     WHITE = '\033[0;37m'     # 白色
-
     #: no color
     END = '\033[0m'      # 终端默认颜色
 
@@ -63,6 +61,13 @@ class Colored(object):
 
     def white(self, s: str):
         return self.color_str('WHITE', s)
+
+
+color = Colored()
+try:
+    import crcmod._crcfunext
+except ModuleNotFoundError:
+    input("%s crcmod的C扩展模式安装失败，会造成上传文件效率低下，请参考 https://help.aliyun.com/document_detail/85288.html#h2-url-5 安装devel。\n按ENTER键继续..." % (color.red('[Warning]')))
 
 
 def SCT_Push(title: str, message: str) -> bool:
@@ -113,7 +118,6 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
 
     def __init__(self, KMSAccessKeySecret=None):
         oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
-        color = Colored()
         if not KMSAccessKeySecret:
             KMSAccessKeySecret = str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % color.red(config.KMSAccessKeyId)))
         self.__OssEndpoint = 'https://' + config.OssEndpoint
@@ -369,7 +373,7 @@ def Chaek_Configs():
     for path in config.backup_exclude:
         if path[0] == '/':
             logger.critical("备份排除目录(backup_exclude_dirs)不可带有前导/")
-            raise ValueError("备份排除目录(backup_exclude_dirs)不可带有前导/")       
+            raise ValueError("备份排除目录(backup_exclude_dirs)不可带有前导/")
     for path in config.backup_dirs:
         if (path[0] == '/' or path[-1] != '/') and os.path.isabs(path):
             logger.critical("本地备份目录(backup_dirs)必须为带有后导/的相对路径")
