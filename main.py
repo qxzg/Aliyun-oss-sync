@@ -175,7 +175,7 @@ if __name__ == "__main__":
     logger.info("已删除的文件列表:\n" + str(delete_list))
     logger.info("已上传的文件列表:\n" + str(uplode_list))
     uplode_file_size = 0.0
-    total_time = time.strftime("%H:%M:%S", time.localtime(time.time() - start_time))
+    total_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
     for path in uplode_list:
         uplode_file_size += os.path.getsize(path)
     logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s\n总耗时：%s" %
