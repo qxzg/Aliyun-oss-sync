@@ -344,26 +344,36 @@ def StrOfSize(size: int) -> str:
 
 def Chaek_Configs():
     # 检查目录参数合法性
-    if config.local_bace_dir[0] != '/' or config.local_bace_dir[-1] != '/':
-        logger.critical("本地工作目录(local_bace_dir)必须为带有前导和后导/的格式")
-        raise ValueError("本地工作目录(local_bace_dir)必须为带有前导和后导/的格式")
-    if config.temp_dir[0] != '/' or config.temp_dir[-1] != '/':
-        logger.critical("临时目录(temp_dir)必须为带有前导和后导/的格式")
-        raise ValueError("临时目录(temp_dir)必须为带有前导和后导/的格式")
     if config.remote_bace_dir[0] == '/' or config.remote_bace_dir[-1] != '/':
         logger.critical("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
         raise ValueError("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
-    for path in config.backup_dirs:
-        if path[0] == '/' or path[-1] != '/':
-            logger.critical("本地备份目录(backup_dirs)必须为带有后导/的格式")
-            raise ValueError("本地备份目录(backup_dirs)必须为带有后导/的格式")
     if type(config.backup_exclude) != tuple:
         logger.critical("备份排除目录(backup_exclude_dirs)必须为tuple类型")
         raise ValueError("备份排除目录(backup_exclude_dirs)必须为tuple类型")
+
+    if os.name == 'nt':
+        if not os.path.isabs(config.local_bace_dir) or config.local_bace_dir[-1] != '/':
+            logger.critical("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
+            raise ValueError("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
+        if not os.path.isabs(config.temp_dir) or config.temp_dir[-1] != '/':
+            logger.critical("临时目录(temp_dir)必须为带有后导/的绝对路径")
+            raise ValueError("临时目录(temp_dir)必须为带有后导/的绝对路径")
+    elif os.name == 'posix':
+        if not os.path.isabs(config.local_bace_dir) or config.local_bace_dir[-1] != '/':
+            logger.critical("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
+            raise ValueError("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
+        if not os.path.isabs(config.temp_dir) or config.temp_dir[-1] != '/':
+            logger.critical("临时目录(temp_dir)必须为带有后导/的绝对路径")
+            raise ValueError("临时目录(temp_dir)必须为带有后导/的绝对路径")
+
     for path in config.backup_exclude:
         if path[0] == '/':
-            logger.critical("备份排除目录(backup_exclude_dirs)必须为不带前导/的相对路径")
-            raise ValueError("备份排除目录(backup_exclude_dirs)必须为不带前导/的相对路径")
+            logger.critical("备份排除目录(backup_exclude_dirs)不可带有前导/")
+            raise ValueError("备份排除目录(backup_exclude_dirs)不可带有前导/")       
+    for path in config.backup_dirs:
+        if (path[0] == '/' or path[-1] != '/') and os.path.isabs(path):
+            logger.critical("本地备份目录(backup_dirs)必须为带有后导/的相对路径")
+            raise ValueError("本地备份目录(backup_dirs)必须为带有后导/的相对路径")
     # 检查目录是否存在
     try:
         os.chdir(config.local_bace_dir)

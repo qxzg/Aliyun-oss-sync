@@ -4,16 +4,20 @@ import json
 import logging
 import os
 import sys
-from getpass import getpass
 import time
+from getpass import getpass
 
 import oss2
 from rich.progress import (BarColumn, Progress, ProgressColumn, TextColumn,
                            TimeElapsedColumn, TimeRemainingColumn)
 
-import config
 from oss_sync_libs import (Calculate_Local_File_sha256, Chaek_Configs, Colored,
                            FileCount, Oss_Operation, SCT_Push, StrOfSize)
+
+try:
+    import config
+except:
+    raise Exception("无法找到config.py")
 
 logger = logging.getLogger("main")
 logger.setLevel(config.LogLevel)
@@ -81,12 +85,16 @@ if __name__ == "__main__":
         task = progress.add_task("[red]正在准备上传...", total=len(local_files_sha256), start=False, filename="")
 
         # 获取远程文件json
-        oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
-        with open(remote_json_filename, 'r') as fobj:
-            remote_files_sha256 = json.load(fobj)
-        sha256_to_remote_file = {}  # sha256与远程文件对应表
-        for file, sha256 in remote_files_sha256.items():
-            sha256_to_remote_file[sha256] = file
+        req = oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
+        if req == 200:
+            with open(remote_json_filename, 'r') as fobj:
+                remote_files_sha256 = json.load(fobj)
+            sha256_to_remote_file = {}  # sha256与远程文件对应表
+            for file, sha256 in remote_files_sha256.items():
+                sha256_to_remote_file[sha256] = file
+        elif req == 404:
+            remote_files_sha256 = {}
+            sha256_to_remote_file = {}
 
     # 计算备份文件的sha256
     # else:
@@ -182,4 +190,4 @@ if __name__ == "__main__":
                 (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(uplode_list)), color.red(StrOfSize(uplode_file_size)), total_time))
     if config.SCT_Send_Key:
         SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s  \n#### 总耗时：%s" %
-                (len(copy_list), len(delete_list), len(uplode_list), StrOfSize(uplode_file_size), total_time))
+                 (len(copy_list), len(delete_list), len(uplode_list), StrOfSize(uplode_file_size), total_time))
