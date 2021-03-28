@@ -2,7 +2,7 @@ OSSAccessKeyId = ""  # OSS服务用户AK
 OSSAccessKeySecret = ""  # OSS服务用户SK
 OssEndpoint = ""  # OSS Endpoint
 bucket_name = ""  # OSS Bucket名称
-storage_class = "Archive"  # Object的存储类型，取值：Standard、IA、Archive和ColdArchive
+default_storage_class = "Archive"  # Object的存储类型，取值：Standard、IA、Archive和ColdArchive
 
 KMSAccessKeyId = ""  # KMS服务的用户AK
 CMKID = ""  # KMS密钥ID（密钥类型必须为AES256）

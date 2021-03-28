@@ -135,8 +135,8 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
             KmsClient(OpenApiModels.Config(access_key_id=config.KMSAccessKeyId, access_key_secret=KMSAccessKeySecret, endpoint='kms.%s.aliyuncs.com' %
                                            config.KMSRegion)).generate_data_key(KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
         except:
-            logger.critical("无法调用GenerateDataKey，请检查KMS相关配置")
-            raise ValueError("无法调用GenerateDataKey，请检查KMS相关配置")
+            logger.critical("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
+            raise ValueError("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
         del KMSAccessKeySecret
         self.__ping_cmd = ["ping", "1", config.OssEndpoint]
         if os.name == 'nt':
