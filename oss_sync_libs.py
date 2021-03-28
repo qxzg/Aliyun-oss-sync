@@ -24,7 +24,7 @@ logger = logging.getLogger("oss_sync_libs")
 
 
 class Colored(object):
-    BLACK = '\033[0;30m'       # 红色
+    BLACK = '\033[0;30m'     # 黑色
     RED = '\033[0;31m'       # 红色
     GREEN = '\033[0;32m'     # 绿色
     YELLOW = '\033[0;33m'    # 黄色
@@ -232,7 +232,7 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
                     logger.error("无法连接网络，10秒后重试")
                     sleep(10)
             except oss2.exceptions.NoSuchKey:
-                logger.exception("无法从oss下载文件" + remote_object_name)
+                logger.error("无法找到文件" + remote_object_name)
                 return 404
         return 200
 
