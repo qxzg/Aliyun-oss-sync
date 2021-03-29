@@ -42,7 +42,7 @@ if __name__ == "__main__":
     oss = Oss_Operation()
 
 ######################################################################
-# else
+
     local_files_sha256 = {}  # 本地文件与sha256对应表
 # 扫描备份目录，获取文件列表
     start_time = time.time()
@@ -52,7 +52,6 @@ if __name__ == "__main__":
         oss_block_size = 0
     else:
         oss_block_size = 1024 * 64
-# else:
     for backup_dirs in config.backup_dirs:
         logger.info("正在读取备份目录:" + backup_dirs)
         for root, dirs, files in os.walk(backup_dirs):
@@ -97,9 +96,9 @@ if __name__ == "__main__":
             sha256_to_remote_file = {}
 
     # 计算备份文件的sha256
-    # else:
         copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
         uplode_list = []  # 需要上传的文件列表
+        uplode_file_size = 0.0
         progress.start_task(task)
         i = 0
         for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
@@ -147,6 +146,7 @@ if __name__ == "__main__":
                     del(local_files_sha256[path])
                 else:
                     uplode_list.append(path)
+                    uplode_file_size += os.path.getsize(path)
 
     if len(copy_list) != 0:
         processed = []
@@ -174,7 +174,6 @@ if __name__ == "__main__":
             json.dump(local_files_sha256, json_fileobj)
 
 ######################################################################
-# else:
 
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)
@@ -182,10 +181,7 @@ if __name__ == "__main__":
     logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
     logger.info("已删除的文件列表:\n" + str(delete_list))
     logger.info("已上传的文件列表:\n" + str(uplode_list))
-    uplode_file_size = 0.0
     total_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
-    for path in uplode_list:
-        uplode_file_size += os.path.getsize(path)
     logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s\n总耗时：%s" %
                 (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(uplode_list)), color.red(StrOfSize(uplode_file_size)), total_time))
     if config.SCT_Send_Key:
