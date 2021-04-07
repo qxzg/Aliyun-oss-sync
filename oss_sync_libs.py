@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import hashlib
-import itertools
-import json
 import logging
 import os
 import subprocess
@@ -14,7 +12,7 @@ from alibabacloud_kms20160120 import models as KmsModels
 from alibabacloud_kms20160120.client import Client as KmsClient
 from alibabacloud_tea_openapi import models as OpenApiModels
 from numpy import square
-from rich.progress import Progress, ProgressColumn, Text
+from rich.progress import ProgressColumn, Text
 from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
                       wait_exponential)
 
@@ -24,16 +22,16 @@ logger = logging.getLogger("oss_sync_libs")
 
 
 class Colored(object):
-    BLACK = '\033[0;30m'     # 黑色
-    RED = '\033[0;31m'       # 红色
-    GREEN = '\033[0;32m'     # 绿色
-    YELLOW = '\033[0;33m'    # 黄色
-    BLUE = '\033[0;34m'      # 蓝色
-    FUCHSIA = '\033[0;35m'   # 紫红色
-    CYAN = '\033[0;36m'      # 青蓝色
-    WHITE = '\033[0;37m'     # 白色
+    BLACK = '\033[0;30m'  # 黑色
+    RED = '\033[0;31m'  # 红色
+    GREEN = '\033[0;32m'  # 绿色
+    YELLOW = '\033[0;33m'  # 黄色
+    BLUE = '\033[0;34m'  # 蓝色
+    FUCHSIA = '\033[0;35m'  # 紫红色
+    CYAN = '\033[0;36m'  # 青蓝色
+    WHITE = '\033[0;37m'  # 白色
     #: no color
-    END = '\033[0m'      # 终端默认颜色
+    END = '\033[0m'  # 终端默认颜色
 
     def color_str(self, color, s):
         return '%s%s%s' % (getattr(self, color), str(s), self.END)
@@ -77,14 +75,14 @@ def SCT_Push(title: str, message: str) -> bool:
         logger.info("SCT Push Success!")
         return True
     else:
-        logger.exception("SCT Push ERROR! "+sc_req.json())
+        logger.exception("SCT Push ERROR! " + sc_req.json())
         return False
 
 
 class FileCount(ProgressColumn):
     """呈现剩余文件数量和总数, e.g. '已处理 666 / 共 23333 个文件'."""
 
-    def render(self, task: "Task"):
+    def render(self, task):
         return Text(f"已处理 {int(task.completed)} / 共 {int(task.total)} 个文件", style="progress.download")
 
 
@@ -178,8 +176,8 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
                 oss2.resumable_upload(
                     self.__bucket, remote_object_name, local_file_name,
                     store=oss2.ResumableStore(root=config.temp_dir),
-                    multipart_threshold=1024*1024*50,
-                    part_size=1024*1024*50,
+                    multipart_threshold=1024 * 1024 * 50,
+                    part_size=1024 * 1024 * 50,
                     num_threads=4,
                     headers={
                         "content-length": str(os.path.getsize(local_file_name)),
@@ -330,6 +328,7 @@ def StrOfSize(size: int) -> str:
     Returns:
         str
     """
+
     def __strofsize(integer, remainder, level):
         if integer >= 1024:
             remainder = integer % 1024
@@ -338,6 +337,7 @@ def StrOfSize(size: int) -> str:
             return __strofsize(integer, remainder, level)
         else:
             return integer, remainder, level
+
     size = int(size)
     units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
     integer, remainder, level = __strofsize(size, 0, 0)
@@ -348,7 +348,7 @@ def StrOfSize(size: int) -> str:
 
 def Chaek_Configs():
     # 检查目录参数合法性
-    if config.remote_bace_dir[0] == '/' or config.remote_bace_dir[-1] != '/':
+    if config.remote_base_dir[0] == '/' or config.remote_base_dir[-1] != '/':
         logger.critical("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
         raise ValueError("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
     if type(config.backup_exclude) != tuple:
@@ -356,14 +356,14 @@ def Chaek_Configs():
         raise ValueError("备份排除目录(backup_exclude_dirs)必须为tuple类型")
 
     if os.name == 'nt':
-        if not os.path.isabs(config.local_bace_dir) or config.local_bace_dir[-1] != '/':
+        if not os.path.isabs(config.local_base_dir) or config.local_base_dir[-1] != '/':
             logger.critical("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
             raise ValueError("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
         if not os.path.isabs(config.temp_dir) or config.temp_dir[-1] != '/':
             logger.critical("临时目录(temp_dir)必须为带有后导/的绝对路径")
             raise ValueError("临时目录(temp_dir)必须为带有后导/的绝对路径")
     elif os.name == 'posix':
-        if not os.path.isabs(config.local_bace_dir) or config.local_bace_dir[-1] != '/':
+        if not os.path.isabs(config.local_base_dir) or config.local_base_dir[-1] != '/':
             logger.critical("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
             raise ValueError("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
         if not os.path.isabs(config.temp_dir) or config.temp_dir[-1] != '/':
@@ -380,10 +380,10 @@ def Chaek_Configs():
             raise ValueError("本地备份目录(backup_dirs)必须为带有后导/的相对路径")
     # 检查目录是否存在
     try:
-        os.chdir(config.local_bace_dir)
+        os.chdir(config.local_base_dir)
     except FileNotFoundError:
-        logger.exception("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
-        raise ValueError("本地工作目录'%s'无效，请检查设置" % config.local_bace_dir)
+        logger.exception("本地工作目录'%s'无效，请检查设置" % config.local_base_dir)
+        raise ValueError("本地工作目录'%s'无效，请检查设置" % config.local_base_dir)
     try:
         for dirs in config.backup_dirs:
             assert os.path.isdir(dirs)
@@ -407,6 +407,7 @@ def Chaek_Configs():
 
 
 if __name__ == "__main__":
+    Chaek_Configs()
     logger.setLevel(config.LogLevel)
     formatter = logging.Formatter(config.LogFormat)
     chlr = logging.StreamHandler()

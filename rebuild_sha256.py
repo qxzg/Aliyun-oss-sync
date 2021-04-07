@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-import hashlib
 import json
-import logging
-import os
-import sys
 import time
 
 import oss2
@@ -15,43 +11,43 @@ bucket = oss2.Bucket(oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret)
 rebuild_file = 'sha256-rebuild.json'
 
 
-def Get_Remote_sha256(obj):
+def get_remote_sha256(obj):
     global bucket
     while True:
         try:
-            objectmeta = bucket.head_object(obj).headers
+            object_meta = bucket.head_object(obj).headers
             break
         except:
-            print('retrying on file "%s"' % (obj))
+            print('retrying on file "%s"' % obj)
             time.sleep(15)
-    if 'x-oss-meta-sha256' in objectmeta:
-        return objectmeta['x-oss-meta-sha256']
+    if 'x-oss-meta-sha256' in object_meta:
+        return object_meta['x-oss-meta-sha256']
     else:
         return False
 
 
 def check_diff():
-    with open(rebuild_file, 'r') as fobj:
-        nsha = json.load(fobj)
-    with open('sha256-old.json', 'r') as fobj:
-        osha = json.load(fobj)
+    with open(rebuild_file, 'r') as FOBJ:
+        new_sha = json.load(FOBJ)
+    with open('sha256-old.json', 'r') as FOBJ:
+        old_sha = json.load(FOBJ)
 
-    dif = nsha.keys() - osha.keys()
-    with open('sha256.diff', 'w', encoding='utf-8') as fobj:
+    dif = new_sha.keys() - old_sha.keys()
+    with open('sha256.diff', 'w', encoding='utf-8') as FOBJ:
         for i in iter(dif):
-            fobj.write(i + '\n')
+            FOBJ.write(i + '\n')
 
 
 if __name__ == '__main__':
     sha256_to_files = {}
     err_files = []
     r_oss = Oss_Operation()
-    for obj in oss2.ObjectIteratorV2(bucket, prefix=config.remote_bace_dir):
+    for obj in oss2.ObjectIteratorV2(bucket, prefix=config.remote_base_dir):
         obj = obj.key
         if obj[-1] == '/':  # 判断obj为文件夹。
             continue
-        sha256 = Get_Remote_sha256(obj)
-        if sha256 == False:
+        sha256 = get_remote_sha256(obj)
+        if not sha256:
             err_files.append(obj)
         else:
             sha256_to_files[obj[11:]] = sha256
