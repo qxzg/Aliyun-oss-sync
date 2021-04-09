@@ -293,19 +293,22 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
         else:
             return objectmeta.headers
 
-    def Restore_Remote_File(self, remote_object, versionId=""):
+    def Restore_Remote_File(self, remote_object, version_id=""):
         """解冻一个Object
         api文档: https://help.aliyun.com/document_detail/52930.html
 
         Args:
             remote_object (str)
-            versionId (str, optional)
+            version_id (str, optional)
 
         Returns:
             int: http响应码
         """
         try:
-            self.__bucket.restore_object(remote_object)
+            if version_id:
+                self.__bucket.restore_object(remote_object, params={'versionId': version_id})
+            else:
+                self.__bucket.restore_object(remote_object)
         except oss2.exceptions.OperationNotSupported:
             logger.warning("您正在试图解冻一个非归档或冷归档类型的Object: %s" % (remote_object))
             return 400
@@ -413,4 +416,4 @@ if __name__ == "__main__":
     chlr = logging.StreamHandler()
     chlr.setFormatter(formatter)
     logger.addHandler(chlr)
-    r_oss = Oss_Operation('')
+    r_oss = Oss_Operation()
