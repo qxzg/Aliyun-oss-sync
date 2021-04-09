@@ -8,8 +8,7 @@ import oss2
 from rich.progress import (BarColumn, Progress, TextColumn,
                            TimeElapsedColumn)
 
-from oss_sync_libs import (Calculate_Local_File_sha256, Chaek_Configs, Colored,
-                           FileCount, Oss_Operation, SCT_Push, StrOfSize)
+from oss_sync_libs import (calculate_local_file_sha256, check_configs, Colored, FileCount, OssOperation, SCT_Push, str_of_size)
 
 try:
     import config
@@ -33,15 +32,15 @@ logger.addHandler(fhlr)
 if __name__ == "__main__":
 
     color = Colored()
-    Chaek_Configs()
+    check_configs()
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
-    oss = Oss_Operation()
+    oss = OssOperation()
 
-######################################################################
+    ######################################################################
 
     local_files_sha256 = {}  # 本地文件与sha256对应表
-# 扫描备份目录，获取文件列表
+    # 扫描备份目录，获取文件列表
     start_time = time.time()
     total_file_size = 0
     oss_waste_size = 0
@@ -63,21 +62,21 @@ if __name__ == "__main__":
                 total_file_size += file_size
                 if file_size < oss_block_size:
                     oss_waste_size += oss_block_size - file_size
-    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s" %
-                (color.red(len(local_files_sha256)), color.red(StrOfSize(total_file_size)), color.red(StrOfSize(oss_waste_size + total_file_size)), color.red(StrOfSize(oss_waste_size)), color.red(config.default_storage_class)))
+    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s" % (
+    color.red(len(local_files_sha256)), color.red(str_of_size(total_file_size)), color.red(str_of_size(oss_waste_size + total_file_size)), color.red(str_of_size(oss_waste_size)), color.red(config.default_storage_class)))
     if not str(input("确认继续请输入Y，否则输入N：")) in ['y', 'Y']:
         exit()
 
     with Progress(
-        "[progress.percentage]{task.percentage:>3.2f}%",
-        BarColumn(),
-        FileCount(),
-        "•",
-        "[progress.elapsed]已用时间", TimeElapsedColumn(),
-        "•",
-        "[progress.description]{task.description}",
-        TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
-    ) as progress:
+            "[progress.percentage]{task.percentage:>3.2f}%",
+            BarColumn(),
+            FileCount(),
+            "•",
+            "[progress.elapsed]已用时间", TimeElapsedColumn(),
+            "•",
+            "[progress.description]{task.description}",
+            TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
+            ) as progress:
         task = progress.add_task("[red]正在准备上传...", total=len(local_files_sha256), start=False, filename="")
 
         # 获取远程文件json
@@ -92,7 +91,7 @@ if __name__ == "__main__":
             remote_files_sha256 = {}
             sha256_to_remote_file = {}
 
-    # 计算备份文件的sha256
+        # 计算备份文件的sha256
         copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
         upload_list = []  # 需要上传的文件列表
         uploaded_file_size = 0.0
@@ -103,10 +102,10 @@ if __name__ == "__main__":
                 time.sleep(30)
                 i = 0
             progress.update(task, description="[red]正在计算哈希", advance=1, filename=path)
-            sha256 = Calculate_Local_File_sha256(path)
+            sha256 = calculate_local_file_sha256(path)
             progress.update(task, description="[red]正在上传文件")
             if not sha256:
-                del(local_files_sha256[path])
+                del (local_files_sha256[path])
                 logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
                 continue
             local_files_sha256[path] = sha256
@@ -118,14 +117,15 @@ if __name__ == "__main__":
                 else:  # 上传文件并覆盖
                     i += 1
                     try:
-                        oss.Uplode_File_Encrypted(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
-                                                  file_sha256=sha256, check_sha256_before_uplode=False)
+                        oss.upload_file_encrypted(
+                            path, config.remote_base_dir + path, storage_class=config.default_storage_class,
+                            file_sha256=sha256, check_sha256_before_upload=False)
                     except FileNotFoundError:
                         logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
-                        del(local_files_sha256[path])
+                        del (local_files_sha256[path])
                     except oss2.exceptions.RequestError:
                         logger.warning("由于网络错误无法上传文件%s" % path)
-                        del(local_files_sha256[path])
+                        del (local_files_sha256[path])
                     else:
                         upload_list.append(path)
             elif sha256 in sha256_to_remote_file:
@@ -133,14 +133,15 @@ if __name__ == "__main__":
             else:  # 上传新增文件
                 i += 1
                 try:
-                    oss.Uplode_File_Encrypted(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
-                                              file_sha256=sha256, check_sha256_before_uplode=False)
+                    oss.upload_file_encrypted(
+                        path, config.remote_base_dir + path, storage_class=config.default_storage_class,
+                        file_sha256=sha256, check_sha256_before_upload=False)
                 except FileNotFoundError:
                     logger.warning("上传时无法找到文件%s" % path)
-                    del(local_files_sha256[path])
+                    del (local_files_sha256[path])
                 except oss2.exceptions.RequestError:
                     logger.warning("由于网络错误无法上传文件%s" % path)
-                    del(local_files_sha256[path])
+                    del (local_files_sha256[path])
                 else:
                     upload_list.append(path)
                     uploaded_file_size += os.path.getsize(path)
@@ -156,7 +157,7 @@ if __name__ == "__main__":
         del processed
     delete_list = []  # 需要删除的文件列表
     for path, sha256 in remote_files_sha256.items():
-        if not path in local_files_sha256:
+        if path not in local_files_sha256:
             delete_list.append(config.remote_base_dir + path)
     if len(delete_list) != 0:
         oss.Delete_Remote_files(delete_list)
@@ -170,17 +171,15 @@ if __name__ == "__main__":
         with open(config.local_base_dir + "sha256_local.json", 'w') as fobj:
             json.dump(local_files_sha256, fobj)
 
-######################################################################
+    ######################################################################
 
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)
-    oss.Uplode_File_Encrypted(local_json_filename, 'sha256.json', storage_class='Standard')
+    oss.upload_file_encrypted(local_json_filename, 'sha256.json', storage_class='Standard')
     logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
     logger.info("已删除的文件列表:\n" + str(delete_list))
     logger.info("已上传的文件列表:\n" + str(upload_list))
     total_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
-    logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s\n总耗时：%s" %
-                (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(upload_list)), color.red(StrOfSize(uploaded_file_size)), total_time))
+    logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s\n总耗时：%s" % (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(upload_list)), color.red(str_of_size(uploaded_file_size)), total_time))
     if config.SCT_Send_Key:
-        SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s  \n#### 总耗时：%s" %
-                 (len(copy_list), len(delete_list), len(upload_list), StrOfSize(uploaded_file_size), total_time))
+        SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s  \n#### 总耗时：%s" % (len(copy_list), len(delete_list), len(upload_list), str_of_size(uploaded_file_size), total_time))

@@ -5,7 +5,7 @@ import time
 import oss2
 
 import config
-from oss_sync_libs import SCT_Push, Oss_Operation
+from oss_sync_libs import SCT_Push, OssOperation
 
 bucket = oss2.Bucket(oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret), 'https://' + config.OssEndpoint, config.bucket_name)
 rebuild_file = 'sha256-rebuild.json'
@@ -41,7 +41,7 @@ def check_diff():
 if __name__ == '__main__':
     sha256_to_files = {}
     err_files = []
-    r_oss = Oss_Operation()
+    r_oss = OssOperation()
     for obj in oss2.ObjectIteratorV2(bucket, prefix=config.remote_base_dir):
         obj = obj.key
         if obj[-1] == '/':  # 判断obj为文件夹。
@@ -53,7 +53,7 @@ if __name__ == '__main__':
             sha256_to_files[obj[11:]] = sha256
     with open(rebuild_file, 'w') as fobj:
         json.dump(sha256_to_files, fobj)
-    r_oss.Uplode_File_Encrypted(rebuild_file, 'sha256.json', check_sha256_before_uplode=True, storage_class='Standard')
+    r_oss.upload_file_encrypted(rebuild_file, 'sha256.json', check_sha256_before_upload=True, storage_class='Standard')
     print(err_files)
     print("无sha256的文件总数：" + str(len(err_files)))
     if config.SCT_Send_Key:
