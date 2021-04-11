@@ -36,28 +36,28 @@ class Colored(object):
     def color_str(self, color, s):
         return '%s%s%s' % (getattr(self, color), str(s), self.END)
 
-    def black(self, s: str):
+    def black(self, s):
         return self.color_str('BLACK', s)
 
-    def red(self, s: str):
+    def red(self, s):
         return self.color_str('RED', s)
 
-    def green(self, s: str):
+    def green(self, s):
         return self.color_str('GREEN', s)
 
-    def yellow(self, s: str):
+    def yellow(self, s):
         return self.color_str('YELLOW', s)
 
-    def blue(self, s: str):
+    def blue(self, s):
         return self.color_str('BLUE', s)
 
-    def fuchsia(self, s: str):
+    def fuchsia(self, s):
         return self.color_str('FUCHSIA', s)
 
-    def cyan(self, s: str):
+    def cyan(self, s):
         return self.color_str('CYAN', s)
 
-    def white(self, s: str):
+    def white(self, s):
         return self.color_str('WHITE', s)
 
 
@@ -322,7 +322,7 @@ class Oss_Operation(object):  # TODO 使用@retry重写重试部分
             return 200
 
 
-def StrOfSize(size: int) -> str:
+def StrOfSize(size) -> str:
     """存储单位人性化转换，精确为最大单位值+小数点后三位
 
     Args:
