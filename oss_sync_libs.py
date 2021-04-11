@@ -112,7 +112,7 @@ def Calculate_Local_File_sha256(file_name: str):
     return m.hexdigest()
 
 
-class Oss_Operation(object):  # TODO 使用@retry重写重试部分
+class OssOperation(object):  # TODO 使用@retry重写重试部分
 
     def __init__(self, KMSAccessKeySecret=None):
         oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
@@ -416,4 +416,4 @@ if __name__ == "__main__":
     chlr = logging.StreamHandler()
     chlr.setFormatter(formatter)
     logger.addHandler(chlr)
-    r_oss = Oss_Operation()
+    r_oss = OssOperation()

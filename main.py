@@ -9,7 +9,7 @@ from rich.progress import (BarColumn, Progress, TextColumn,
                            TimeElapsedColumn)
 
 from oss_sync_libs import (Calculate_Local_File_sha256, Chaek_Configs, Colored,
-                           FileCount, Oss_Operation, SCT_Push, StrOfSize)
+                           FileCount, OssOperation, SCT_Push, StrOfSize)
 
 try:
     import config
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     Chaek_Configs()
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
-    oss = Oss_Operation()
+    oss = OssOperation()
 
 ######################################################################
 
