@@ -5,7 +5,7 @@ import time
 import oss2
 
 import config
-from oss_sync_libs import SCT_Push, Oss_Operation
+from oss_sync_libs import SCT_Push, OssOperation
 
 bucket = oss2.Bucket(oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret), 'https://' + config.OssEndpoint, config.bucket_name)
 rebuild_file = 'sha256-rebuild.json'
@@ -41,7 +41,7 @@ def check_diff():
 if __name__ == '__main__':
     sha256_to_files = {}
     err_files = []
-    r_oss = Oss_Operation()
+    r_oss = OssOperation()
     for obj in oss2.ObjectIteratorV2(bucket, prefix=config.remote_base_dir):
         obj = obj.key
         if obj[-1] == '/':  # 判断obj为文件夹。
