@@ -38,10 +38,10 @@ if __name__ == "__main__":
     remote_json_filename = config.temp_dir + "sha256_remote.json"
     oss = OssOperation()
 
-######################################################################
+    ######################################################################
 
     local_files_sha256 = {}  # 本地文件与sha256对应表
-# 扫描备份目录，获取文件列表
+    # 扫描备份目录，获取文件列表
     start_time = time.time()
     total_file_size = 0
     oss_waste_size = 0
@@ -69,15 +69,15 @@ if __name__ == "__main__":
         exit()
 
     with Progress(
-        "[progress.percentage]{task.percentage:>3.2f}%",
-        BarColumn(),
-        FileCount(),
-        "•",
-        "[progress.elapsed]已用时间", TimeElapsedColumn(),
-        "•",
-        "[progress.description]{task.description}",
-        TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
-    ) as progress:
+            "[progress.percentage]{task.percentage:>3.2f}%",
+            BarColumn(),
+            FileCount(),
+            "•",
+            "[progress.elapsed]已用时间", TimeElapsedColumn(),
+            "•",
+            "[progress.description]{task.description}",
+            TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
+            ) as progress:
         task = progress.add_task("[red]正在准备上传...", total=len(local_files_sha256), start=False, filename="")
 
         # 获取远程文件json
@@ -92,7 +92,7 @@ if __name__ == "__main__":
             remote_files_sha256 = {}
             sha256_to_remote_file = {}
 
-    # 计算备份文件的sha256
+        # 计算备份文件的sha256
         copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
         upload_list = []  # 需要上传的文件列表
         uploaded_file_size = 0.0
@@ -106,7 +106,7 @@ if __name__ == "__main__":
             sha256 = Calculate_Local_File_sha256(path)
             progress.update(task, description="[red]正在上传文件")
             if not sha256:
-                del(local_files_sha256[path])
+                del (local_files_sha256[path])
                 logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
                 continue
             local_files_sha256[path] = sha256
@@ -122,10 +122,10 @@ if __name__ == "__main__":
                                                   file_sha256=sha256, check_sha256_before_uplode=False)
                     except FileNotFoundError:
                         logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
-                        del(local_files_sha256[path])
+                        del (local_files_sha256[path])
                     except oss2.exceptions.RequestError:
                         logger.warning("由于网络错误无法上传文件%s" % path)
-                        del(local_files_sha256[path])
+                        del (local_files_sha256[path])
                     else:
                         upload_list.append(path)
             elif sha256 in sha256_to_remote_file:
@@ -137,15 +137,15 @@ if __name__ == "__main__":
                                               file_sha256=sha256, check_sha256_before_uplode=False)
                 except FileNotFoundError:
                     logger.warning("上传时无法找到文件%s" % path)
-                    del(local_files_sha256[path])
+                    del (local_files_sha256[path])
                 except oss2.exceptions.RequestError:
                     logger.warning("由于网络错误无法上传文件%s" % path)
-                    del(local_files_sha256[path])
+                    del (local_files_sha256[path])
                 else:
                     upload_list.append(path)
                     uploaded_file_size += os.path.getsize(path)
 
-    if len(copy_list) != 0:
+    if len(copy_list) != 0:  # TODO 优化冷归档存储时复制文件的逻辑
         processed = []
         for dst_obj, src_obj in copy_list.items():
             if src_obj not in processed:
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         del processed
     delete_list = []  # 需要删除的文件列表
     for path, sha256 in remote_files_sha256.items():
-        if not path in local_files_sha256:
+        if path not in local_files_sha256:
             delete_list.append(config.remote_base_dir + path)
     if len(delete_list) != 0:
         oss.Delete_Remote_files(delete_list)
@@ -170,7 +170,7 @@ if __name__ == "__main__":
         with open(config.local_base_dir + "sha256_local.json", 'w') as fobj:
             json.dump(local_files_sha256, fobj)
 
-######################################################################
+    ######################################################################
 
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)

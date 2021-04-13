@@ -326,7 +326,7 @@ def StrOfSize(size) -> str:
     """存储单位人性化转换，精确为最大单位值+小数点后三位
 
     Args:
-        size (int)
+        size
 
     Returns:
         str
@@ -410,7 +410,7 @@ def Chaek_Configs():
 
 
 if __name__ == "__main__":
-    Chaek_Configs()
+    #Chaek_Configs()
     logger.setLevel(config.LogLevel)
     formatter = logging.Formatter(config.LogFormat)
     chlr = logging.StreamHandler()
