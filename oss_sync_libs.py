@@ -123,7 +123,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret),
             self.__OssEndpoint, config.bucket_name,
             crypto_provider=oss2.crypto.AliKMSProvider(config.KMSAccessKeyId, KMSAccessKeySecret, config.KMSRegion, config.CMKID)
-        )
+            )
         try:  # 检测Bucket是否存在
             self.__bucket.get_bucket_info()
         except oss2.exceptions.NoSuchBucket:
@@ -131,7 +131,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             raise ValueError("Bucket:\"%s\"不存在" % config.bucket_name)
         try:  # 检测KMS配置有效性
             KmsClient(OpenApiModels.Config(access_key_id=config.KMSAccessKeyId, access_key_secret=KMSAccessKeySecret, endpoint='kms.%s.aliyuncs.com' %
-                                           config.KMSRegion)).generate_data_key(KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
+                                                                                                                               config.KMSRegion)).generate_data_key(KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
         except:
             logger.critical("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
             raise ValueError("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
@@ -185,8 +185,8 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                         "x-oss-server-side-encryption": "KMS",
                         "x-oss-storage-class": storage_class,
                         "x-oss-meta-sha256": file_sha256
-                    }
-                )
+                        }
+                    )
                 break
             except (oss2.exceptions.ClientError, oss2.exceptions.RequestError, ConnectionResetError) as err:
                 if retry_count < config.Max_Retries:
@@ -381,6 +381,10 @@ def Chaek_Configs():
         if (path[0] == '/' or path[-1] != '/') and os.path.isabs(path):
             logger.critical("本地备份目录(backup_dirs)必须为带有后导/的相对路径")
             raise ValueError("本地备份目录(backup_dirs)必须为带有后导/的相对路径")
+    if config.remote_base_dir.startswith("sha256"):
+        logger.critical("remote_base_dir不应以sha256开头，可能与哈希存储冲突")
+        raise ValueError("remote_base_dir不应以sha256开头，可能与哈希存储冲突")
+
     # 检查目录是否存在
     try:
         os.chdir(config.local_base_dir)
@@ -410,7 +414,7 @@ def Chaek_Configs():
 
 
 if __name__ == "__main__":
-    #Chaek_Configs()
+    # Chaek_Configs()
     logger.setLevel(config.LogLevel)
     formatter = logging.Formatter(config.LogFormat)
     chlr = logging.StreamHandler()

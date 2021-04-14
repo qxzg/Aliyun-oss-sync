@@ -81,7 +81,8 @@ if __name__ == "__main__":
         task = progress.add_task("[red]正在准备上传...", total=len(local_files_sha256), start=False, filename="")
 
         # 获取远程文件json
-        req = oss.Download_Decrypted_File(remote_json_filename, "sha256.json")
+        json_on_oss = "sha256/%s.json" % config.remote_base_dir[:-1]
+        req = oss.Download_Decrypted_File(remote_json_filename, json_on_oss)
         if req == 200:
             with open(remote_json_filename, 'r') as fobj:
                 remote_files_sha256 = json.load(fobj)
@@ -174,7 +175,7 @@ if __name__ == "__main__":
 
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)
-    oss.Uplode_File_Encrypted(local_json_filename, 'sha256.json', storage_class='Standard')
+    oss.Uplode_File_Encrypted(local_json_filename, json_on_oss, storage_class='Standard')
     logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
     logger.info("已删除的文件列表:\n" + str(delete_list))
     logger.info("已上传的文件列表:\n" + str(upload_list))
