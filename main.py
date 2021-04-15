@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import argparse
 import json
 import logging
 import os
@@ -8,63 +9,55 @@ import oss2
 from rich.progress import (BarColumn, Progress, TextColumn,
                            TimeElapsedColumn)
 
-from oss_sync_libs import (Calculate_Local_File_sha256, Chaek_Configs, Colored,
-                           FileCount, OssOperation, SCT_Push, StrOfSize)
+from oss_sync_libs import (Calculate_Local_File_sha256, check_configs, Colored,
+                           FileCount, OssOperation, SCT_Push, StrOfSize, scan_backup_dirs)
 
 try:
     import config
-except:
+except ModuleNotFoundError:
     raise Exception("无法找到config.py")
 
 logger = logging.getLogger("main")
-logger.setLevel(config.LogLevel)
-formatter = logging.Formatter(config.LogFormat)
-chlr = logging.StreamHandler()
-chlr.setFormatter(formatter)
-try:
-    fhlr = logging.FileHandler(filename=config.LogFile, encoding='utf-8')  # only work on python>=3.9
-except ValueError:
-    fhlr = logging.FileHandler(filename=config.LogFile)
-fhlr.setFormatter(formatter)
-del formatter
-logger.addHandler(chlr)
-logger.addHandler(fhlr)
+
+
+def create_logger(no_file_logger: bool = False):
+    global logger
+    logger.setLevel(config.LogLevel)
+    formatter = logging.Formatter(config.LogFormat)
+    chlr = logging.StreamHandler()
+    chlr.setFormatter(formatter)
+    logger.addHandler(chlr)
+    if not no_file_logger:
+        try:
+            fhlr = logging.FileHandler(filename=config.LogFile, encoding='utf-8')  # only work on python>=3.9
+        except ValueError:
+            fhlr = logging.FileHandler(filename=config.LogFile)
+        fhlr.setFormatter(formatter)
+        logger.addHandler(fhlr)
+
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--compare_sha256_before_uploading', action='store_true', help='添加此选项将会在上传文件前对比远端Object Header中的sha256，如相同则会跳过上传。')
+    parser.add_argument('--kms_sk', help='以参数的形式输入KMS服务的SK')
+    parser.add_argument('--no_file_logger', action='store_true', help='不将日志写入文件')
+    args = parser.parse_args()
+
+    create_logger(args.no_file_logger)
+    check_configs()
     color = Colored()
-    Chaek_Configs()
+    oss = OssOperation(KMSAccessKeySecret=args.kms_sk)
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
-    oss = OssOperation()
+    os.chdir(config.local_base_dir)
 
     ######################################################################
 
-    local_files_sha256 = {}  # 本地文件与sha256对应表
     # 扫描备份目录，获取文件列表
     start_time = time.time()
-    total_file_size = 0
-    oss_waste_size = 0
-    if config.default_storage_class == "Standard":
-        oss_block_size = 0
-    else:
-        oss_block_size = 1024 * 64
-    for backup_dirs in config.backup_dirs:
-        logger.info("正在读取备份目录:" + backup_dirs)
-        for root, dirs, files in os.walk(backup_dirs):
-            if root.startswith(config.backup_exclude):
-                continue  # 排除特定文件夹
-            for file in files:
-                relative_path = os.path.join(root, file)  # 合成相对于local_base_dir的路径
-                file_size = os.path.getsize(relative_path)
-                if file_size == 0:
-                    continue  # 排除文件大小为0的空文件
-                local_files_sha256[relative_path] = ""
-                total_file_size += file_size
-                if file_size < oss_block_size:
-                    oss_waste_size += oss_block_size - file_size
-    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s" %
-                (color.red(len(local_files_sha256)), color.red(StrOfSize(total_file_size)), color.red(StrOfSize(oss_waste_size + total_file_size)), color.red(StrOfSize(oss_waste_size)), color.red(config.default_storage_class)))
+    local_files_sha256 = scan_backup_dirs()
+
     if not str(input("确认继续请输入Y，否则输入N：")) in ['y', 'Y']:
         exit()
 
@@ -120,7 +113,7 @@ if __name__ == "__main__":
                     i += 1
                     try:
                         oss.Uplode_File_Encrypted(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
-                                                  file_sha256=sha256, check_sha256_before_uplode=False)
+                                                  file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
                     except FileNotFoundError:
                         logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
                         del (local_files_sha256[path])
@@ -135,7 +128,7 @@ if __name__ == "__main__":
                 i += 1
                 try:
                     oss.Uplode_File_Encrypted(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
-                                              file_sha256=sha256, check_sha256_before_uplode=False)
+                                              file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
                 except FileNotFoundError:
                     logger.warning("上传时无法找到文件%s" % path)
                     del (local_files_sha256[path])
@@ -165,8 +158,8 @@ if __name__ == "__main__":
     try:
         with open(local_json_filename, 'w') as fobj:
             json.dump(local_files_sha256, fobj)
-        logger.info("sha256保存到" + local_json_filename)
-    except:
+        logger.info("sha256成功保存到" + local_json_filename)
+    except EnvironmentError:
         logger.exception("保存json文件时出错，无法保存至%s，尝试保存至%ssha256_local.json" % (local_json_filename, config.local_base_dir))
         with open(config.local_base_dir + "sha256_local.json", 'w') as fobj:
             json.dump(local_files_sha256, fobj)
@@ -175,7 +168,8 @@ if __name__ == "__main__":
 
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)
-    oss.Uplode_File_Encrypted(local_json_filename, json_on_oss, storage_class='Standard')
+    oss.Uplode_File_Encrypted(local_json_filename, json_on_oss, storage_class='Standard', compare_sha256_before_uploading=True)
+
     logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
     logger.info("已删除的文件列表:\n" + str(delete_list))
     logger.info("已上传的文件列表:\n" + str(upload_list))

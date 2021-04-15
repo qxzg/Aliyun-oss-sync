@@ -86,6 +86,36 @@ class FileCount(ProgressColumn):
         return Text(f"已处理 {int(task.completed)} / 共 {int(task.total)} 个文件", style="progress.download")
 
 
+def scan_backup_dirs() -> dict:
+    """扫描备份目录
+    """
+    local_files_sha256 = {}
+    total_file_size = 0
+    oss_waste_size = 0
+    if config.default_storage_class == "Standard":
+        oss_block_size = 0
+    else:
+        oss_block_size = 1024 * 64
+    for backup_dirs in config.backup_dirs:
+        logger.info("正在读取备份目录:" + backup_dirs)
+        for root, dirs, files in os.walk(backup_dirs):
+            if root.startswith(config.backup_exclude):
+                continue  # 排除特定文件夹
+            for file in files:
+                relative_path = os.path.join(root, file)  # 合成相对于local_base_dir的路径
+                file_size = os.path.getsize(relative_path)
+                if file_size == 0:
+                    continue  # 排除文件大小为0的空文件
+                local_files_sha256[relative_path] = ""
+                total_file_size += file_size
+                if file_size < oss_block_size:
+                    oss_waste_size += oss_block_size - file_size
+    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s" %
+                (color.red(len(local_files_sha256)), color.red(StrOfSize(total_file_size)), color.red(StrOfSize(oss_waste_size + total_file_size)),
+                 color.red(StrOfSize(oss_waste_size)), color.red(config.default_storage_class)))
+    return local_files_sha256
+
+
 def Calculate_Local_File_sha256(file_name: str):
     """计算sha256
 
@@ -131,7 +161,8 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             raise ValueError("Bucket:\"%s\"不存在" % config.bucket_name)
         try:  # 检测KMS配置有效性
             KmsClient(OpenApiModels.Config(access_key_id=config.KMSAccessKeyId, access_key_secret=KMSAccessKeySecret, endpoint='kms.%s.aliyuncs.com' %
-                                                                                                                               config.KMSRegion)).generate_data_key(KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
+                                                                                                                               config.KMSRegion)).generate_data_key(
+                KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
         except:
             logger.critical("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
             raise ValueError("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
@@ -147,7 +178,8 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             logger.error("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
             raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
 
-    def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, cache_control='no-store', check_sha256_before_uplode=False):
+    def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, cache_control='no-store',
+                              compare_sha256_before_uploading=False):
         """使用KMS加密并上传文件
 
         Args:
@@ -156,12 +188,12 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             storage_class (str, 可选): Object的存储类型，取值：Standard、IA、Archive和ColdArchive。默认值为Standard
             file_sha256 (str, 可选): 如不提供将会自动计算本地文件sha256
             cache_control (str, 可选)
-            check_sha256_before_uplode (bool, 可选): 是否在上传之前对比远端文件的sha256，如相同则跳过上传
+            compare_sha256_before_uploading (bool, 可选): 是否在上传之前对比远端文件的sha256，如相同则跳过上传
         """
         if not file_sha256:
             file_sha256 = Calculate_Local_File_sha256(local_file_name)
         retry_count = 0
-        if check_sha256_before_uplode:
+        if compare_sha256_before_uploading:
             try:
                 remote_object_sha256 = self.Get_Remote_File_Meta(remote_object_name)['x-oss-meta-sha256']
             except:
@@ -234,7 +266,8 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                 return 404
         return 200
 
-    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60),
+           stop=stop_after_attempt(config.Max_Retries))
     def Delete_Remote_files(self, delete_list: list):
         """删除OSS中的文件
 
@@ -244,17 +277,19 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
         for i in range(0, (len(delete_list) // 1000) + 1):
             self.__bucket.batch_delete_objects(delete_list[i * 1000:(i * 1000) + 999])
 
-    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60),
+           stop=stop_after_attempt(config.Max_Retries))
     def Copy_remote_files(self, copy_list: dict, storage_class='Standard'):
         """复制远程文件
 
         Args:
-            copy_list (dits): Key:目标文件, velue:源文件
+            copy_list (dits): {目标文件: 源文件}
         """
-        for dst_obj, src_obj in copy_list.items():
+        for dst_obj, src_obj in copy_list.items():  # TODO 处理错误 oss2.exceptions.ServerError: {'status': 403, 'x-oss-request-id': '6077BB66E20C8C3236733943', 'details': {'Code': 'InvalidObjectState', 'Message': "The operation is not valid for the object's state", 'RequestId': '6077BB66E20C8C3236733943', 'HostId': 'qxzg-nas-backup.oss-cn-hangzhou.aliyuncs.com', 'ObjectName': 'nas-backup/main-pool/personal/sdy/tools/software/cadence/td/vb/Blacked - Zoey Monroe - Cheating Blonde GF Barely Takes BBC in Her Ass.mp4'}}
             self.__bucket.copy_object(config.bucket_name, src_obj, dst_obj, headers={'x-oss-storage-class': storage_class})
 
-    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError) | retry_if_exception_type(oss2.exceptions.ClientError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError) | retry_if_exception_type(oss2.exceptions.ClientError), reraise=True,
+           wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
     def Verify_Remote_File_Integrity(self, remote_object) -> bool:
         """校验远端文件哈希值，将文件下载、解密至内存中计算sha256并与oss header中的sha256比对
 
@@ -270,7 +305,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
         else:
             return False
 
-    def Get_Remote_File_Meta(self, remote_object: str, versionId=None):
+    def Get_Remote_File_Meta(self, remote_object: str, versionId=None) -> dict:
         """获取一个远程文件的元信息
 
         Args:
@@ -278,7 +313,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             versionId (str, optional)
 
         Returns:
-            list: https://help.aliyun.com/document_detail/31984.html?#title-xew-l4g-a20
+            dict: https://help.aliyun.com/document_detail/31984.html?#title-xew-l4g-a20
         """
         try:
             if versionId:
@@ -349,29 +384,21 @@ def StrOfSize(size) -> str:
     return ('%.3f %s' % (integer + remainder * 0.001, units[level]))
 
 
-def Chaek_Configs():
+def check_configs():
     # 检查目录参数合法性
     if config.remote_base_dir[0] == '/' or config.remote_base_dir[-1] != '/':
-        logger.critical("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
-        raise ValueError("远端工作目录(remote_bace_dir)必须为带有后导/的格式")
+        logger.critical("远端工作目录(remote_base_dir)必须为带有后导/的格式")
+        raise ValueError("远端工作目录(remote_base_dir)必须为带有后导/的格式")
     if type(config.backup_exclude) != tuple:
         logger.critical("备份排除目录(backup_exclude_dirs)必须为tuple类型")
         raise ValueError("备份排除目录(backup_exclude_dirs)必须为tuple类型")
 
-    if os.name == 'nt':
-        if not os.path.isabs(config.local_base_dir) or config.local_base_dir[-1] != '/':
-            logger.critical("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
-            raise ValueError("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
-        if not os.path.isabs(config.temp_dir) or config.temp_dir[-1] != '/':
-            logger.critical("临时目录(temp_dir)必须为带有后导/的绝对路径")
-            raise ValueError("临时目录(temp_dir)必须为带有后导/的绝对路径")
-    elif os.name == 'posix':
-        if not os.path.isabs(config.local_base_dir) or config.local_base_dir[-1] != '/':
-            logger.critical("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
-            raise ValueError("本地工作目录(local_bace_dir)必须为带有后导/的绝对路径")
-        if not os.path.isabs(config.temp_dir) or config.temp_dir[-1] != '/':
-            logger.critical("临时目录(temp_dir)必须为带有后导/的绝对路径")
-            raise ValueError("临时目录(temp_dir)必须为带有后导/的绝对路径")
+    if not os.path.isabs(config.local_base_dir) or config.local_base_dir[-1] != '/':
+        logger.critical("本地工作目录(local_base_dir)必须为带有后导/的绝对路径")
+        raise ValueError("本地工作目录(local_base_dir)必须为带有后导/的绝对路径")
+    if not os.path.isabs(config.temp_dir) or config.temp_dir[-1] != '/':
+        logger.critical("临时目录(temp_dir)必须为带有后导/的绝对路径")
+        raise ValueError("临时目录(temp_dir)必须为带有后导/的绝对路径")
 
     for path in config.backup_exclude:
         if path[0] == '/':
@@ -387,7 +414,7 @@ def Chaek_Configs():
 
     # 检查目录是否存在
     try:
-        os.chdir(config.local_base_dir)
+        os.path.isdir(config.local_base_dir)
     except FileNotFoundError:
         logger.exception("本地工作目录'%s'无效，请检查设置" % config.local_base_dir)
         raise ValueError("本地工作目录'%s'无效，请检查设置" % config.local_base_dir)
@@ -401,7 +428,7 @@ def Chaek_Configs():
         logger.info("临时文件夹%s不存在，将会自动创建")
         os.makedirs(config.temp_dir)
     # 检查oss参数合法性
-    if not config.default_storage_class in ['Standard', 'IA', 'Archive', 'ColdArchive']:
+    if config.default_storage_class not in ['Standard', 'IA', 'Archive', 'ColdArchive']:
         logger.critical("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
         raise ValueError("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
     if config.OssEndpoint.startswith("http"):
@@ -414,7 +441,7 @@ def Chaek_Configs():
 
 
 if __name__ == "__main__":
-    # Chaek_Configs()
+    # check_configs()
     logger.setLevel(config.LogLevel)
     formatter = logging.Formatter(config.LogFormat)
     chlr = logging.StreamHandler()
