@@ -178,8 +178,8 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             logger.error("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
             raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
 
-    def Uplode_File_Encrypted(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, cache_control='no-store',
-                              compare_sha256_before_uploading=False):
+    def encrypt_and_upload_files(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, cache_control='no-store',
+                                 compare_sha256_before_uploading=False):
         """使用KMS加密并上传文件
 
         Args:
@@ -199,7 +199,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             except:
                 remote_object_sha256 = file_sha256
             if remote_object_sha256 == file_sha256:
-                logger.info("[Uplode_File_Encrypted]sha256相同，跳过%s文件的上传" % (local_file_name))
+                logger.info("[encrypt_and_upload_files]sha256相同，跳过%s文件的上传" % (local_file_name))
                 return 200
         while True:
             try:
@@ -222,10 +222,10 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                 break
             except (oss2.exceptions.ClientError, oss2.exceptions.RequestError, ConnectionResetError) as err:
                 if retry_count < config.Max_Retries:
-                    logger.error("[Uplode_File_Encrypted] error, retrying time %d" % retry_count)
+                    logger.error("[encrypt_and_upload_files] error, retrying time %d" % retry_count)
                     logger.error(err)
                 else:
-                    logger.exception("[Uplode_File_Encrypted] Error")
+                    logger.exception("[encrypt_and_upload_files] Error")
                     raise oss2.exceptions.RequestError
                 sleep(square(retry_count) * 10)
                 while subprocess.run(self.__ping_cmd, capture_output=True).returncode != 0:
@@ -233,20 +233,20 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                     sleep(10)
         return 200
 
-    def Download_Decrypted_File(self, local_file_name, remote_object_name, versionId=None):
+    def download_and_decrypt_file(self, local_file_name, remote_object_name, version_id=None):
         """从OSS下载并解密文件
 
         Args:
             local_file_name (str)
             remote_object_name (str)
-            versionId (str, 可选)
+            version_id (str, 可选)
         """
         retry_count = 0
         while True:
             try:
                 retry_count += 1
-                if versionId:
-                    self.__bucket.get_object_to_file(remote_object_name, local_file_name, params={'versionId': versionId})
+                if version_id:
+                    self.__bucket.get_object_to_file(remote_object_name, local_file_name, params={'versionId': version_id})
                 else:
                     self.__bucket.get_object_to_file(remote_object_name, local_file_name)
                 break
@@ -305,7 +305,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
         else:
             return False
 
-    def Get_Remote_File_Meta(self, remote_object: str, versionId=None) -> dict:
+    def Get_Remote_File_Meta(self, remote_object: str, versionId=None):
         """获取一个远程文件的元信息
 
         Args:

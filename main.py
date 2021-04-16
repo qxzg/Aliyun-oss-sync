@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
         # 获取远程文件json
         json_on_oss = "sha256/%s.json" % config.remote_base_dir[:-1]
-        req = oss.Download_Decrypted_File(remote_json_filename, json_on_oss)
+        req = oss.download_and_decrypt_file(remote_json_filename, json_on_oss)
         if req == 200:
             with open(remote_json_filename, 'r') as fobj:
                 remote_files_sha256 = json.load(fobj)
@@ -112,8 +112,8 @@ if __name__ == "__main__":
                 else:  # 上传文件并覆盖
                     i += 1
                     try:
-                        oss.Uplode_File_Encrypted(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
-                                                  file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
+                        oss.encrypt_and_upload_files(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
+                                                     file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
                     except FileNotFoundError:
                         logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
                         del (local_files_sha256[path])
@@ -127,8 +127,8 @@ if __name__ == "__main__":
             else:  # 上传新增文件
                 i += 1
                 try:
-                    oss.Uplode_File_Encrypted(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
-                                              file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
+                    oss.encrypt_and_upload_files(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
+                                                 file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
                 except FileNotFoundError:
                     logger.warning("上传时无法找到文件%s" % path)
                     del (local_files_sha256[path])
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     with open(local_json_filename, 'w') as fobj:
         json.dump(local_files_sha256, fobj)
-    oss.Uplode_File_Encrypted(local_json_filename, json_on_oss, storage_class='Standard', compare_sha256_before_uploading=True)
+    oss.encrypt_and_upload_files(local_json_filename, json_on_oss, storage_class='Standard', compare_sha256_before_uploading=True)
 
     logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
     logger.info("已删除的文件列表:\n" + str(delete_list))
