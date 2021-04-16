@@ -9,7 +9,7 @@ import oss2
 from rich.progress import (BarColumn, Progress, TextColumn,
                            TimeElapsedColumn)
 
-from oss_sync_libs import (Calculate_Local_File_sha256, check_configs, Colored,
+from oss_sync_libs import (calculate_local_file_sha256, check_configs, Colored,
                            FileCount, OssOperation, SCT_Push, StrOfSize, scan_backup_dirs)
 
 try:
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     create_logger(args.no_file_logger)
     check_configs()
     color = Colored()
-    oss = OssOperation(KMSAccessKeySecret=args.kms_sk)
+    oss = OssOperation(kms_access_key_secret=args.kms_sk)
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
     os.chdir(config.local_base_dir)
@@ -90,6 +90,7 @@ if __name__ == "__main__":
         copy_list = {}  # 需要复制的文件列表{目标文件: 源文件}
         upload_list = []  # 需要上传的文件列表
         uploaded_file_size = 0.0
+
         progress.start_task(task)
         i = 0
         for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
@@ -97,7 +98,7 @@ if __name__ == "__main__":
                 time.sleep(30)
                 i = 0
             progress.update(task, description="[red]正在计算哈希", advance=1, filename=path)
-            sha256 = Calculate_Local_File_sha256(path)
+            sha256 = calculate_local_file_sha256(path)
             progress.update(task, description="[red]正在上传文件")
             if not sha256:
                 del (local_files_sha256[path])
@@ -139,21 +140,76 @@ if __name__ == "__main__":
                     upload_list.append(path)
                     uploaded_file_size += os.path.getsize(path)
 
-    if len(copy_list) != 0:  # TODO 优化冷归档存储时复制文件的逻辑
-        processed = []
+    if len(copy_list) != 0:
+        total_size_to_be_copied = 0.0
+        src_obj_list = []
+        remote_prefix_length = len(config.remote_base_dir)
         for dst_obj, src_obj in copy_list.items():
-            if src_obj not in processed:
-                oss.Restore_Remote_File(src_obj)
-                processed.append(src_obj)
-        time.sleep(90)
-        oss.Copy_remote_files(copy_list, storage_class=config.default_storage_class)
-        del processed
+            if src_obj not in src_obj_list:
+                src_obj_list.append(src_obj)
+                total_size_to_be_copied += os.path.getsize(src_obj[remote_prefix_length:])
+
+        if config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_ARCHIVE:
+            for src_obj in src_obj_list:
+                oss.restore_remote_file(src_obj)
+            time.sleep(90)
+            while oss.check_restore_status(src_obj_list[-1]) == 200:
+                time.sleep(10)
+            oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
+        elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE:  # TODO 支持冷归档存储时文件复制的命令行参数，避免输中途入方案
+            total_size_to_be_copied_GB = total_size_to_be_copied / (1024*1024*1024)
+            plan_description = "\n总共需要复制%s文件。请输入对应的数字以选择处理方案：" \
+                               "\n0. 不复制，直接从本地进行上传。预计耗时：%s（以30Mbps上传速度计算）"\
+                               "\n1. 使用高优先级解冻文件（耗时：1小时），然后再复制。\n\t预计耗费：%.3f元"\
+                               "\n2. 使用批量先级解冻文件（耗时：2~5小时），然后再复制。\n\t预计耗费：%.3f元"\
+                               "\n3. 使用标准先级解冻文件（耗时：5~12小时），然后再复制。\n\t预计耗费：%.3f元" % \
+                               (StrOfSize(total_size_to_be_copied), time.strftime("%H时%M分%S秒", time.gmtime(total_size_to_be_copied/(1024*128*30))),
+                                (len(src_obj_list) * 0.003 + total_size_to_be_copied_GB * 0.2),
+                                (len(src_obj_list) * 0.0003 + total_size_to_be_copied_GB * 0.06),
+                                (len(src_obj_list) * 0.00003 + total_size_to_be_copied_GB * 0.03))
+            SCT_Push('[OSS-Sync]请选择文件复制方案', plan_description.replace('\n', '  \n'))
+            logger.info(plan_description)
+            while True:
+                plan_number = eval(input("请输入方案编号："))
+                if type(plan_number) != int or plan_number not in [0, 1, 2, 3]:
+                    logger.warning("请输入正确的编号！")
+                    continue
+                if str(input('确认执行方案%d吗？输入Y以确认')) in ['y', 'Y']:
+                    break
+                else:
+                    continue
+
+            if plan_number == 0:
+                for dst_obj, src_obj in copy_list.items():
+                    oss.encrypt_and_upload_files(dst_obj[remote_prefix_length:], dst_obj, storage_class=config.default_storage_class)
+            else:
+                for src_obj in src_obj_list:
+                    oss.restore_remote_file(src_obj, restore_configuration=plan_number-1)
+                if plan_number == 1:
+                    time.sleep(3600)
+                    delay = 30
+                elif plan_number == 2:
+                    time.sleep(3600*2)
+                    delay = 60
+                else:
+                    time.sleep(3600*5)
+                    delay = 120
+
+                for src_obj in src_obj_list:
+                    while oss.check_restore_status(src_obj) != 200:
+                        time.sleep(delay)
+                oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
+            # https://help.aliyun.com/document_detail/51374.html#title-vi1-wio-4gv
+            # https://www.aliyun.com/price/product#/oss/detail
+        else:
+            oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
+
     delete_list = []  # 需要删除的文件列表
     for path, sha256 in remote_files_sha256.items():
         if path not in local_files_sha256:
             delete_list.append(config.remote_base_dir + path)
     if len(delete_list) != 0:
-        oss.Delete_Remote_files(delete_list)
+        oss.delete_remote_files(delete_list)
 
     try:
         with open(local_json_filename, 'w') as fobj:

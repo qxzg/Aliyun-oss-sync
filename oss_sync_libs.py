@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import argparse
 import hashlib
 import logging
 import os
@@ -69,7 +70,7 @@ except ModuleNotFoundError:
 
 
 def SCT_Push(title: str, message: str) -> bool:
-    url = "https://sctapi.ftqq.com/%s.send" % (config.SCT_Send_Key)
+    url = "https://sctapi.ftqq.com/%s.send" % config.SCT_Send_Key
     sc_req = requests.post(url=url, data={'title': title, 'desp': message})
     if sc_req.json()['data']['error'] == "SUCCESS":
         logger.info("SCT Push Success!")
@@ -116,7 +117,7 @@ def scan_backup_dirs() -> dict:
     return local_files_sha256
 
 
-def Calculate_Local_File_sha256(file_name: str):
+def calculate_local_file_sha256(file_name: str):
     """计算sha256
 
     Args:
@@ -137,36 +138,38 @@ def Calculate_Local_File_sha256(file_name: str):
             else:
                 m.update(fobj.read())
     except:
-        logger.exception("[Calculate_Local_File_sha256] Fail to open the file: %s", file_name)
+        logger.exception("[calculate_local_file_sha256] Fail to open the file: %s", file_name)
         return False
     return m.hexdigest()
 
 
 class OssOperation(object):  # TODO 使用@retry重写重试部分
 
-    def __init__(self, KMSAccessKeySecret=None):
+    def __init__(self, kms_access_key_secret=None):
         oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
-        if not KMSAccessKeySecret:
-            KMSAccessKeySecret = str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % color.red(config.KMSAccessKeyId)))
+        if not kms_access_key_secret:
+            kms_access_key_secret = str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % color.red(config.KMSAccessKeyId)))
         self.__OssEndpoint = 'https://' + config.OssEndpoint
         self.__bucket = oss2.CryptoBucket(
             oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret),
             self.__OssEndpoint, config.bucket_name,
-            crypto_provider=oss2.crypto.AliKMSProvider(config.KMSAccessKeyId, KMSAccessKeySecret, config.KMSRegion, config.CMKID)
+            crypto_provider=oss2.crypto.AliKMSProvider(config.KMSAccessKeyId, kms_access_key_secret, config.KMSRegion, config.CMKID)
             )
+
         try:  # 检测Bucket是否存在
             self.__bucket.get_bucket_info()
         except oss2.exceptions.NoSuchBucket:
             logger.critical("Bucket:\"%s\"不存在" % config.bucket_name)
             raise ValueError("Bucket:\"%s\"不存在" % config.bucket_name)
+
         try:  # 检测KMS配置有效性
-            KmsClient(OpenApiModels.Config(access_key_id=config.KMSAccessKeyId, access_key_secret=KMSAccessKeySecret, endpoint='kms.%s.aliyuncs.com' %
-                                                                                                                               config.KMSRegion)).generate_data_key(
-                KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
+            KmsClient(OpenApiModels.Config(access_key_id=config.KMSAccessKeyId, access_key_secret=kms_access_key_secret,
+                                           endpoint='kms.%s.aliyuncs.com' % config.KMSRegion)).generate_data_key(KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
         except:
             logger.critical("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
             raise ValueError("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
-        del KMSAccessKeySecret
+        del kms_access_key_secret
+
         self.__ping_cmd = ["ping", "1", config.OssEndpoint]
         if os.name == 'nt':
             self.__ping_cmd.insert(1, "-n")
@@ -175,8 +178,10 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
         else:
             raise OSError("无法识别操作系统")
         if subprocess.run(self.__ping_cmd, capture_output=True).returncode != 0:
-            logger.error("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
-            raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % (config.OssEndpoint))
+            logger.error("无法连接至%s，请检查OssEndpoint和网络配置" % config.OssEndpoint)
+            raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % config.OssEndpoint)
+
+        self.__restore_configuration_model = [oss2.models.RESTORE_TIER_EXPEDITED, oss2.models.RESTORE_TIER_STANDARD, oss2.models.RESTORE_TIER_BULK]
 
     def encrypt_and_upload_files(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, cache_control='no-store',
                                  compare_sha256_before_uploading=False):
@@ -191,15 +196,15 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             compare_sha256_before_uploading (bool, 可选): 是否在上传之前对比远端文件的sha256，如相同则跳过上传
         """
         if not file_sha256:
-            file_sha256 = Calculate_Local_File_sha256(local_file_name)
+            file_sha256 = calculate_local_file_sha256(local_file_name)
         retry_count = 0
         if compare_sha256_before_uploading:
             try:
-                remote_object_sha256 = self.Get_Remote_File_Meta(remote_object_name)['x-oss-meta-sha256']
+                remote_object_sha256 = self.get_remote_file_headers(remote_object_name)['x-oss-meta-sha256']
             except:
                 remote_object_sha256 = file_sha256
             if remote_object_sha256 == file_sha256:
-                logger.info("[encrypt_and_upload_files]sha256相同，跳过%s文件的上传" % (local_file_name))
+                logger.info("[encrypt_and_upload_files]sha256相同，跳过%s文件的上传" % local_file_name)
                 return 200
         while True:
             try:
@@ -233,7 +238,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                     sleep(10)
         return 200
 
-    def download_and_decrypt_file(self, local_file_name, remote_object_name, version_id=None):
+    def download_and_decrypt_file(self, local_file_name: str, remote_object_name: str, version_id: str=None):
         """从OSS下载并解密文件
 
         Args:
@@ -242,13 +247,15 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             version_id (str, 可选)
         """
         retry_count = 0
+        if not version_id:
+            req_params = None
+        else:
+            req_params = {'versionId': version_id}
+
         while True:
             try:
                 retry_count += 1
-                if version_id:
-                    self.__bucket.get_object_to_file(remote_object_name, local_file_name, params={'versionId': version_id})
-                else:
-                    self.__bucket.get_object_to_file(remote_object_name, local_file_name)
+                self.__bucket.get_object_to_file(remote_object_name, local_file_name, params=req_params)
                 break
             except (oss2.exceptions.ClientError, oss2.exceptions.RequestError, ConnectionResetError) as err:
                 if retry_count < config.Max_Retries:
@@ -268,7 +275,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
 
     @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60),
            stop=stop_after_attempt(config.Max_Retries))
-    def Delete_Remote_files(self, delete_list: list):
+    def delete_remote_files(self, delete_list: list):
         """删除OSS中的文件
 
         Args:
@@ -279,18 +286,19 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
 
     @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60),
            stop=stop_after_attempt(config.Max_Retries))
-    def Copy_remote_files(self, copy_list: dict, storage_class='Standard'):
+    def copy_remote_files(self, copy_list: dict, storage_class=oss2.BUCKET_STORAGE_CLASS_STANDARD):
         """复制远程文件
 
         Args:
             copy_list (dits): {目标文件: 源文件}
+            storage_class (str)
         """
-        for dst_obj, src_obj in copy_list.items():  # TODO 处理错误 oss2.exceptions.ServerError: {'status': 403, 'x-oss-request-id': '6077BB66E20C8C3236733943', 'details': {'Code': 'InvalidObjectState', 'Message': "The operation is not valid for the object's state", 'RequestId': '6077BB66E20C8C3236733943', 'HostId': 'qxzg-nas-backup.oss-cn-hangzhou.aliyuncs.com', 'ObjectName': 'nas-backup/main-pool/personal/sdy/tools/software/cadence/td/vb/Blacked - Zoey Monroe - Cheating Blonde GF Barely Takes BBC in Her Ass.mp4'}}
+        for dst_obj, src_obj in copy_list.items():  # TODO 处理错误 oss2.exceptions.ServerError: {'status': 403, 'x-oss-request-id': '6077BB66E20C8C3236733943', 'details': {'Code': 'InvalidObjectState', 'Message': "The operation is not valid for the object's state", 'RequestId': '6077BB66E20C8C3236733943', 'HostId': 'oss-cn-hangzhou.aliyuncs.com', 'ObjectName': 'a.txt'}}
             self.__bucket.copy_object(config.bucket_name, src_obj, dst_obj, headers={'x-oss-storage-class': storage_class})
 
     @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError) | retry_if_exception_type(oss2.exceptions.ClientError), reraise=True,
            wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
-    def Verify_Remote_File_Integrity(self, remote_object) -> bool:
+    def verify_remote_file_integrity(self, remote_object) -> bool:
         """校验远端文件哈希值，将文件下载、解密至内存中计算sha256并与oss header中的sha256比对
 
         Args:
@@ -305,57 +313,93 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
         else:
             return False
 
-    def Get_Remote_File_Meta(self, remote_object: str, versionId=None):
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError) | retry_if_exception_type(oss2.exceptions.ClientError), reraise=True,
+           wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
+    def get_remote_file_headers(self, remote_object: str, version_id: str = None):
         """获取一个远程文件的元信息
-
-        Args:
-            remote_object (str)
-            versionId (str, optional)
-
-        Returns:
-            dict: https://help.aliyun.com/document_detail/31984.html?#title-xew-l4g-a20
-        """
-        try:
-            if versionId:
-                objectmeta = self.__bucket.head_object(remote_object, params={'versionId': versionId})
-            else:
-                objectmeta = self.__bucket.head_object(remote_object)
-        except oss2.exceptions.NotFound:
-            logger.warning("请求的object %s 不存在" % (remote_object))
-            return 404
-        except oss2.exceptions.ServerError as e:
-            logger.error(e)
-        else:
-            return objectmeta.headers
-
-    def Restore_Remote_File(self, remote_object, version_id=""):
-        """解冻一个Object
-        api文档: https://help.aliyun.com/document_detail/52930.html
 
         Args:
             remote_object (str)
             version_id (str, optional)
 
         Returns:
+            dict: https://help.aliyun.com/document_detail/31984.html?#title-xew-l4g-a20
+        """
+        if not version_id:
+            req_params = None
+        else:
+            req_params = {'versionId': version_id}
+
+        try:
+            __object_header = self.__bucket.head_object(remote_object, params=req_params)
+        except oss2.exceptions.NotFound:
+            logger.warning("请求的object %s 不存在" % remote_object)
+            return 404
+        else:
+            return __object_header.headers
+
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError) | retry_if_exception_type(oss2.exceptions.ClientError), reraise=True,
+           wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
+    def restore_remote_file(self, remote_object: str, version_id: str = None, restore_configuration: int = None) -> int:
+        """解冻一个Object
+        api文档: https://help.aliyun.com/document_detail/52930.html
+
+        Args:
+            remote_object (str)
+            version_id (str, optional)
+            restore_configuration (int) 解冻优先级, 取值范围:
+                0: 1个小时之内解冻完成
+                1: 5小时之内解冻完成
+                2: 10小时之内解冻完成
+
+        Returns:
             int: http响应码
         """
+        if restore_configuration:
+            restore_configuration = self.__restore_configuration_model[restore_configuration]
+        if not version_id:
+            req_params = None
+        else:
+            req_params = {'versionId': version_id}
+
         try:
-            if version_id:
-                self.__bucket.restore_object(remote_object, params={'versionId': version_id})
-            else:
-                self.__bucket.restore_object(remote_object)
+            self.__bucket.restore_object(remote_object, input=restore_configuration, params=req_params)
         except oss2.exceptions.OperationNotSupported:
-            logger.warning("您正在试图解冻一个非归档或冷归档类型的Object: %s" % (remote_object))
+            logger.warning("[restore_remote_file] 您正在试图解冻一个非归档或冷归档类型的Object: %s" % remote_object)
             return 400
         except oss2.exceptions.RestoreAlreadyInProgress:
-            logger.info("目标object %s 正在解冻中" % (remote_object))
+            logger.info("[restore_remote_file] 目标Object: \"%s\" 正在解冻中" % remote_object)
             return 409
         except oss2.exceptions.NoSuchKey:
-            logger.warning("您正在解冻一个不存在的object %s" % (remote_object))
+            logger.warning("[restore_remote_file] 您正在解冻一个不存在的Object %s" % remote_object)
             return 404
         else:
             return 200
 
+    def check_restore_status(self, remote_object: str, version_id: str = None) -> int:
+        """检查Object的解冻状态
+
+        Args:
+            remote_object (str)
+            version_id (str)
+
+        Returns: int
+            200: 已完成解冻
+            409: 正在解冻中
+            410: 没有提交解冻或者解冻已超时
+
+        """
+        __headers = self.get_remote_file_headers(remote_object, version_id=version_id)
+        if 'x-oss-restore' in __headers:
+            if __headers['x-oss-restore'] == 'ongoing-request="true"':
+                return 409
+            else:
+                return 200
+        elif type(__headers) == int:
+            if __headers == 404:
+                return 404
+        else:
+            return 410
 
 def StrOfSize(size) -> str:
     """存储单位人性化转换，精确为最大单位值+小数点后三位
@@ -381,7 +425,7 @@ def StrOfSize(size) -> str:
     integer, remainder, level = __strofsize(size, 0, 0)
     if level + 1 > len(units):
         level = -1
-    return ('%.3f %s' % (integer + remainder * 0.001, units[level]))
+    return '%.3f %s' % (integer + remainder * 0.001, units[level])
 
 
 def check_configs():
@@ -428,7 +472,7 @@ def check_configs():
         logger.info("临时文件夹%s不存在，将会自动创建")
         os.makedirs(config.temp_dir)
     # 检查oss参数合法性
-    if config.default_storage_class not in ['Standard', 'IA', 'Archive', 'ColdArchive']:
+    if config.default_storage_class not in [oss2.BUCKET_STORAGE_CLASS_STANDARD, oss2.BUCKET_STORAGE_CLASS_IA, oss2.BUCKET_STORAGE_CLASS_ARCHIVE, oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE]:
         logger.critical("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
         raise ValueError("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
     if config.OssEndpoint.startswith("http"):
@@ -441,10 +485,19 @@ def check_configs():
 
 
 if __name__ == "__main__":
-    # check_configs()
+
     logger.setLevel(config.LogLevel)
     formatter = logging.Formatter(config.LogFormat)
     chlr = logging.StreamHandler()
     chlr.setFormatter(formatter)
     logger.addHandler(chlr)
-    r_oss = OssOperation()
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--check_configs', action='store_true', help='执行check_configs')
+    parser.add_argument('--kms_sk', help='以参数的形式输入KMS服务的SK')
+    args = parser.parse_args()
+
+    if args.check_configs:
+        check_configs()
+
+    r_oss = OssOperation(args.kms_sk)
