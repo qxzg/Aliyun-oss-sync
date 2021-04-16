@@ -87,36 +87,6 @@ class FileCount(ProgressColumn):
         return Text(f"已处理 {int(task.completed)} / 共 {int(task.total)} 个文件", style="progress.download")
 
 
-def scan_backup_dirs() -> dict:
-    """扫描备份目录
-    """
-    local_files_sha256 = {}
-    total_file_size = 0
-    oss_waste_size = 0
-    if config.default_storage_class == "Standard":
-        oss_block_size = 0
-    else:
-        oss_block_size = 1024 * 64
-    for backup_dirs in config.backup_dirs:
-        logger.info("正在读取备份目录:" + backup_dirs)
-        for root, dirs, files in os.walk(backup_dirs):
-            if root.startswith(config.backup_exclude):
-                continue  # 排除特定文件夹
-            for file in files:
-                relative_path = os.path.join(root, file)  # 合成相对于local_base_dir的路径
-                file_size = os.path.getsize(relative_path)
-                if file_size == 0:
-                    continue  # 排除文件大小为0的空文件
-                local_files_sha256[relative_path] = ""
-                total_file_size += file_size
-                if file_size < oss_block_size:
-                    oss_waste_size += oss_block_size - file_size
-    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s" %
-                (color.red(len(local_files_sha256)), color.red(StrOfSize(total_file_size)), color.red(StrOfSize(oss_waste_size + total_file_size)),
-                 color.red(StrOfSize(oss_waste_size)), color.red(config.default_storage_class)))
-    return local_files_sha256
-
-
 def calculate_local_file_sha256(file_name: str):
     """计算sha256
 
