@@ -461,6 +461,7 @@ def check_configs():
         logger.exception("本地工作目录'%s'无效，请检查设置" % config.local_base_dir)
         raise ValueError("本地工作目录'%s'无效，请检查设置" % config.local_base_dir)
     for dirs in config.backup_dirs:
+        dirs = config.local_base_dir + dirs
         if not os.path.isdir(dirs):
             logger.exception("备份目录'%s'无效，请检查设置" % dirs)
             raise ValueError("备份目录'%s'无效，请检查设置" % dirs)
