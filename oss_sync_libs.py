@@ -457,17 +457,13 @@ def check_configs():
         raise ValueError("remote_base_dir不应以sha256开头，可能与哈希存储冲突")
 
     # 检查目录是否存在
-    try:
-        os.path.isdir(config.local_base_dir)
-    except FileNotFoundError:
+    if not os.path.isdir(config.local_base_dir):
         logger.exception("本地工作目录'%s'无效，请检查设置" % config.local_base_dir)
         raise ValueError("本地工作目录'%s'无效，请检查设置" % config.local_base_dir)
-    try:
-        for dirs in config.backup_dirs:
-            assert os.path.isdir(dirs)
-    except FileNotFoundError:
-        logger.exception("备份目录'%s'无效，请检查设置" % dirs)
-        raise ValueError("备份目录'%s'无效，请检查设置" % dirs)
+    for dirs in config.backup_dirs:
+        if not os.path.isdir(dirs):
+            logger.exception("备份目录'%s'无效，请检查设置" % dirs)
+            raise ValueError("备份目录'%s'无效，请检查设置" % dirs)
     if not os.path.exists(config.temp_dir):
         logger.info("临时文件夹%s不存在，将会自动创建")
         os.makedirs(config.temp_dir)
