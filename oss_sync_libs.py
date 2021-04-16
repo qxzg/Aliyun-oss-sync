@@ -310,6 +310,31 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
 
     @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError) | retry_if_exception_type(oss2.exceptions.ClientError), reraise=True,
            wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
+    def get_remote_file_size(self, remote_object: str, version_id: str = None) -> int:
+        """获取一个远程Object的Content-Length
+
+        Args:
+            remote_object (str)
+            version_id (str, optional)
+
+        Returns:
+            int: 文件大小
+        """
+        if not version_id:
+            req_params = None
+        else:
+            req_params = {'versionId': version_id}
+
+        try:
+            __object_header = self.__bucket.get_object_meta(remote_object, params=req_params)
+        except oss2.exceptions.NoSuchKey:
+            logger.warning("[get_remote_file_size] 请求的Object: %s 不存在" % remote_object)
+            return 404
+        else:
+            return int(__object_header.headers['Content-Length'])
+
+    @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError) | retry_if_exception_type(oss2.exceptions.ClientError), reraise=True,
+           wait=wait_exponential(multiplier=1, min=2, max=60), stop=stop_after_attempt(config.Max_Retries))
     def restore_remote_file(self, remote_object: str, version_id: str = None, restore_configuration: int = None) -> int:
         """解冻一个Object
         api文档: https://help.aliyun.com/document_detail/52930.html

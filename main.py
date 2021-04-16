@@ -85,8 +85,8 @@ if __name__ == "__main__":
 
     ######################################################################
 
-    # 扫描备份目录，获取文件列表
     start_time = time.time()
+    # 扫描备份目录，获取文件列表
     local_files_sha256 = scan_backup_dirs()
 
     if not str(input("确认继续请输入Y，否则输入N：")) in ['y', 'Y']:
@@ -178,7 +178,7 @@ if __name__ == "__main__":
         for dst_obj, src_obj in copy_list.items():
             if src_obj not in src_obj_list:
                 src_obj_list.append(src_obj)
-                total_size_to_be_copied += os.path.getsize(src_obj[remote_prefix_length:])
+                total_size_to_be_copied += oss.get_remote_file_size(src_obj)
 
         if config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_ARCHIVE:
             for src_obj in src_obj_list:
