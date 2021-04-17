@@ -10,7 +10,7 @@ from rich.progress import (BarColumn, Progress, TextColumn,
                            TimeElapsedColumn)
 
 from oss_sync_libs import (calculate_local_file_sha256, check_configs, Colored,
-                           FileCount, OssOperation, SCT_Push, StrOfSize)
+                           FileCount, OssOperation, sct_push, bytes_to_str)
 
 try:
     import config
@@ -62,8 +62,8 @@ def scan_backup_dirs() -> dict:
                 if file_size < oss_block_size:
                     oss_waste_size += oss_block_size - file_size
     logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s" %
-                (color.red(len(local_files_to_sha256)), color.red(StrOfSize(total_file_size)), color.red(StrOfSize(oss_waste_size + total_file_size)),
-                 color.red(StrOfSize(oss_waste_size)), color.red(config.default_storage_class)))
+                (color.red(len(local_files_to_sha256)), color.red(bytes_to_str(total_file_size)), color.red(bytes_to_str(oss_waste_size + total_file_size)),
+                 color.red(bytes_to_str(oss_waste_size)), color.red(config.default_storage_class)))
     return local_files_to_sha256
 
 
@@ -194,11 +194,11 @@ if __name__ == "__main__":
                                "\n1. 使用高优先级解冻文件（耗时：1小时），然后再复制。\n\t预计耗费：%.3f元"\
                                "\n2. 使用批量先级解冻文件（耗时：2~5小时），然后再复制。\n\t预计耗费：%.3f元"\
                                "\n3. 使用标准先级解冻文件（耗时：5~12小时），然后再复制。\n\t预计耗费：%.3f元" % \
-                               (StrOfSize(total_size_to_be_copied), time.strftime("%H时%M分%S秒", time.gmtime(total_size_to_be_copied/(1024*128*30))),
+                               (bytes_to_str(total_size_to_be_copied), time.strftime("%H时%M分%S秒", time.gmtime(total_size_to_be_copied / (1024 * 128 * 30))),
                                 (len(src_obj_list) * 0.003 + total_size_to_be_copied_GB * 0.2),
                                 (len(src_obj_list) * 0.0003 + total_size_to_be_copied_GB * 0.06),
                                 (len(src_obj_list) * 0.00003 + total_size_to_be_copied_GB * 0.03))
-            SCT_Push('[OSS-Sync]请选择文件复制方案', plan_description.replace('\n', '  \n'))
+            sct_push('[OSS-Sync]请选择文件复制方案', plan_description.replace('\n', '  \n'))
             logger.info(plan_description)
             while True:
                 plan_number = eval(input("请输入方案编号："))
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     logger.info("已上传的文件列表:\n" + str(upload_list))
     total_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
     logger.info("\n复制的文件总数：%s\n删除的文件总数：%s\n上传的文件总数：%s\n上传的文件总大小：%s\n总耗时：%s" %
-                (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(upload_list)), color.red(StrOfSize(uploaded_file_size)), total_time))
+                (color.red(len(copy_list)), color.red(len(delete_list)), color.red(len(upload_list)), color.red(bytes_to_str(uploaded_file_size)), total_time))
     if config.SCT_Send_Key:
-        SCT_Push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s  \n#### 总耗时：%s" %
-                 (len(copy_list), len(delete_list), len(upload_list), StrOfSize(uploaded_file_size), total_time))
+        sct_push("[OSS-Sync]上传完成", "#### 复制的文件总数：%d 个  \n#### 删除的文件总数：%d 个  \n#### 上传的文件总数：%d 个  \n#### 上传的文件总大小：%s  \n#### 总耗时：%s" %
+                 (len(copy_list), len(delete_list), len(upload_list), bytes_to_str(uploaded_file_size), total_time))

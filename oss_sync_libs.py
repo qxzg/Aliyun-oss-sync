@@ -23,19 +23,21 @@ logger = logging.getLogger("oss_sync_libs")
 
 
 class Colored(object):
-    BLACK = '\033[0;30m'  # 黑色
-    RED = '\033[0;31m'  # 红色
-    GREEN = '\033[0;32m'  # 绿色
-    YELLOW = '\033[0;33m'  # 黄色
-    BLUE = '\033[0;34m'  # 蓝色
-    FUCHSIA = '\033[0;35m'  # 紫红色
-    CYAN = '\033[0;36m'  # 青蓝色
-    WHITE = '\033[0;37m'  # 白色
-    #: no color
-    END = '\033[0m'  # 终端默认颜色
+    __color_code = {
+        'BLACK': '\033[0;30m',  # 黑色
+        'RED': '\033[0;31m',  # 红色
+        'GREEN': '\033[0;32m',  # 绿色
+        'YELLOW': '\033[0;33m',  # 黄色
+        'BLUE': '\033[0;34m',  # 蓝色
+        'FUCHSIA': '\033[0;35m',  # 紫红色
+        'CYAN': '\033[0;36m',  # 青蓝色
+        'WHITE': '\033[0;37m',  # 白色
+        #: no color
+        'END': '\033[0m'  # 终端默认颜色
+        }
 
-    def color_str(self, color, s):
-        return '%s%s%s' % (getattr(self, color), str(s), self.END)
+    def color_str(self, __color, s):
+        return '%s%s%s' % (self.__color_code[__color], str(s), self.__color_code['END'])
 
     def black(self, s):
         return self.color_str('BLACK', s)
@@ -69,7 +71,8 @@ except ModuleNotFoundError:
     input("%s crcmod的C扩展模式安装失败，会造成上传文件效率低下，请参考 https://help.aliyun.com/document_detail/85288.html#h2-url-5 安装devel。\n按ENTER键继续..." % (color.red('[Warning]')))
 
 
-def SCT_Push(title: str, message: str) -> bool:
+def sct_push(title: str, message: str) -> bool:
+    """Server酱·Turbo版推送"""
     url = "https://sctapi.ftqq.com/%s.send" % config.SCT_Send_Key
     sc_req = requests.post(url=url, data={'title': title, 'desp': message})
     if sc_req.json()['data']['error'] == "SUCCESS":
@@ -208,7 +211,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                     sleep(10)
         return 200
 
-    def download_and_decrypt_file(self, local_file_name: str, remote_object_name: str, version_id: str=None):
+    def download_and_decrypt_file(self, local_file_name: str, remote_object_name: str, version_id: str = None):
         """从OSS下载并解密文件
 
         Args:
@@ -396,28 +399,22 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
         else:
             return 410
 
-def StrOfSize(size) -> str:
-    """存储单位人性化转换，精确为最大单位值+小数点后三位
 
-    Args:
-        size
+def bytes_to_str(size) -> str:
+    """存储单位人性化转换，精确为最大单位值+小数点后三位"""
 
-    Returns:
-        str
-    """
-
-    def __strofsize(integer, remainder, level):
-        if integer >= 1024:
-            remainder = integer % 1024
-            integer //= 1024
-            level += 1
-            return __strofsize(integer, remainder, level)
+    def __str_of_size(__integer, __remainder, __level):
+        if __integer >= 1024:
+            __remainder = __integer % 1024
+            __integer //= 1024
+            __level += 1
+            return __str_of_size(__integer, __remainder, __level)
         else:
-            return integer, remainder, level
+            return __integer, __remainder, __level
 
     size = int(size)
     units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
-    integer, remainder, level = __strofsize(size, 0, 0)
+    integer, remainder, level = __str_of_size(size, 0, 0)
     if level + 1 > len(units):
         level = -1
     return '%.3f %s' % (integer + remainder * 0.001, units[level])
@@ -464,7 +461,8 @@ def check_configs():
         logger.info("临时文件夹%s不存在，将会自动创建")
         os.makedirs(config.temp_dir)
     # 检查oss参数合法性
-    if config.default_storage_class not in [oss2.BUCKET_STORAGE_CLASS_STANDARD, oss2.BUCKET_STORAGE_CLASS_IA, oss2.BUCKET_STORAGE_CLASS_ARCHIVE, oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE]:
+    if config.default_storage_class not in [oss2.BUCKET_STORAGE_CLASS_STANDARD, oss2.BUCKET_STORAGE_CLASS_IA, oss2.BUCKET_STORAGE_CLASS_ARCHIVE,
+                                            oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE]:
         logger.critical("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
         raise ValueError("default_storage_class取值错误，必须为Standard、IA、Archive或ColdArchive")
     if config.OssEndpoint.startswith("http"):
