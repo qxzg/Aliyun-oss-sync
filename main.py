@@ -205,7 +205,7 @@ if __name__ == "__main__":
                 if type(plan_number) != int or plan_number not in [0, 1, 2, 3]:
                     logger.warning("请输入正确的编号！")
                     continue
-                if str(input('确认执行方案%d吗？输入Y以确认')) in ['y', 'Y']:
+                if str(input('确认执行方案%d吗？输入Y以确认' % plan_number)) in ['y', 'Y']:
                     break
                 else:
                     continue
