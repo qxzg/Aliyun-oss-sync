@@ -211,13 +211,14 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                     sleep(10)
         return 200
 
-    def download_and_decrypt_file(self, local_file_name: str, remote_object_name: str, version_id: str = None):
+    def download_and_decrypt_file(self, local_file_name: str, remote_object_name: str, version_id: str = None, verify_integrity: bool = False):
         """从OSS下载并解密文件
 
         Args:
             local_file_name (str)
             remote_object_name (str)
             version_id (str, 可选)
+            verify_integrity: 设置为True会在下载之后校验sha256
         """
         retry_count = 0
         if not version_id:
@@ -228,7 +229,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
         while True:
             try:
                 retry_count += 1
-                self.__bucket.get_object_to_file(remote_object_name, local_file_name, params=req_params)
+                req = self.__bucket.get_object_to_file(remote_object_name, local_file_name, params=req_params)
                 break
             except (oss2.exceptions.ClientError, oss2.exceptions.RequestError, ConnectionResetError) as err:
                 if retry_count < config.Max_Retries:
@@ -244,6 +245,12 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             except oss2.exceptions.NoSuchKey:
                 logger.error("无法找到文件" + remote_object_name)
                 return 404
+        if verify_integrity:
+            if calculate_local_file_sha256(local_file_name) == req.headers['x-oss-meta-sha256']:
+                return 200
+            else:
+                logger.error('[download_and_decrypt_file] Object: %s 校验不通过' % remote_object_name)
+                raise
         return 200
 
     @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError), reraise=True, wait=wait_exponential(multiplier=1, min=2, max=60),
@@ -266,7 +273,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             copy_list (dits): {目标文件: 源文件}
             storage_class (str)
         """
-        for dst_obj, src_obj in copy_list.items():  # TODO 处理错误 oss2.exceptions.ServerError: {'status': 403, 'x-oss-request-id': '6077BB66E20C8C3236733943', 'details': {'Code': 'InvalidObjectState', 'Message': "The operation is not valid for the object's state", 'RequestId': '6077BB66E20C8C3236733943', 'HostId': 'oss-cn-hangzhou.aliyuncs.com', 'ObjectName': 'a.txt'}}
+        for dst_obj, src_obj in copy_list.items():
             self.__bucket.copy_object(config.bucket_name, src_obj, dst_obj, headers={'x-oss-storage-class': storage_class})
 
     @retry(retry=retry_if_exception_type(oss2.exceptions.RequestError) | retry_if_exception_type(oss2.exceptions.ClientError), reraise=True,
@@ -482,12 +489,21 @@ if __name__ == "__main__":
     chlr.setFormatter(formatter)
     logger.addHandler(chlr)
 
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser()
     parser.add_argument('--check_configs', action='store_true', help='执行check_configs')
     parser.add_argument('--kms_sk', help='以参数的形式输入KMS服务的SK')
+    parser_group = parser.add_mutually_exclusive_group()
+    parser_group.add_argument('-d', help='下载文件', nargs=2, type=str, metavar=('Remote_File', 'Local_File'), dest='download_file')
+    parser_group.add_argument('-u', help='上传文件', nargs=2, type=str, metavar=('Local_File', 'Remote_File'), dest='upload_file')
+
     args = parser.parse_args()
 
     if args.check_configs:
         check_configs()
-
+    print(args)
     r_oss = OssOperation(args.kms_sk)
+
+    if args.download_file:
+        print(r_oss.download_and_decrypt_file(args.download_file[1], args.download_file[0]))
+    if args.upload_file:
+        print(r_oss.encrypt_and_upload_files(args.upload_file[0], args.upload_file[1]))

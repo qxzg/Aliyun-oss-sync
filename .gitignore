@@ -5,3 +5,4 @@ config.py
 *.zip
 *.json
 test.py
+.idea
