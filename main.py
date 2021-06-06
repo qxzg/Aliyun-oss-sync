@@ -244,17 +244,15 @@ if __name__ == "__main__":
 
     try:
         with open(local_json_filename, 'w') as fobj:
-            json.dump(local_files_sha256, fobj)
+            json.dump(local_files_sha256, fobj, separators=(',', ':'))
         logger.info("sha256成功保存到" + local_json_filename)
     except EnvironmentError:
         logger.exception("保存json文件时出错，无法保存至%s，尝试保存至%ssha256_local.json" % (local_json_filename, config.local_base_dir))
         with open(config.local_base_dir + "sha256_local.json", 'w') as fobj:
-            json.dump(local_files_sha256, fobj)
+            json.dump(local_files_sha256, fobj, separators=(',', ':'))
 
     ######################################################################
 
-    with open(local_json_filename, 'w') as fobj:
-        json.dump(local_files_sha256, fobj)
     oss.encrypt_and_upload_files(local_json_filename, json_on_oss, storage_class='Standard', compare_sha256_before_uploading=True)
 
     logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
