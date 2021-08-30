@@ -5,4 +5,4 @@ tenacity==8.0.1
 alibabacloud_kms20160120==2.0.0
 oss2==2.15.0
 requests==2.26.0
-rich==10.7.0
+rich==10.9.0
