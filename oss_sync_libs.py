@@ -7,11 +7,9 @@ import subprocess
 from getpass import getpass
 from time import sleep
 
+from Crypto.PublicKey import RSA
 import oss2
 import requests
-from alibabacloud_kms20160120 import models as KmsModels
-from alibabacloud_kms20160120.client import Client as KmsClient
-from alibabacloud_tea_openapi import models as OpenApiModels
 from numpy import square
 from rich.progress import ProgressColumn, Text
 from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
@@ -118,15 +116,32 @@ def calculate_local_file_sha256(file_name: str):
 
 class OssOperation(object):  # TODO 使用@retry重写重试部分
 
-    def __init__(self, kms_access_key_secret=None):
+    def __init__(self, rsa_passphrase=None):
+
         oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
-        if not kms_access_key_secret:
-            kms_access_key_secret = str(getpass("请输入AK为\"%s\"的KMS服务的SK：" % color.red(config.KMSAccessKeyId)))
+
+        try:  # 自动判断是否需要rsa私钥密码
+            RSA.importKey(config.rsa_private_key)
+        except ValueError:
+            if not rsa_passphrase:
+                rsa_passphrase = str(getpass("请输私钥密码（无密码请直接回车）："))
+            while True:
+                try:
+                    RSA.importKey(config.rsa_private_key, passphrase=rsa_passphrase)
+                except ValueError:
+                    logger.exception("私钥密码不正确")
+                    rsa_passphrase = str(getpass("私钥密码不正确，请重新输入："))
+                else:
+                    break
+        else:
+            rsa_passphrase = None
+
         self.__OssEndpoint = 'https://' + config.OssEndpoint
+        __key_pair = {'private_key': config.rsa_private_key, 'public_key': config.rsa_public_key}
         self.__bucket = oss2.CryptoBucket(
             oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret),
             self.__OssEndpoint, config.bucket_name,
-            crypto_provider=oss2.crypto.AliKMSProvider(config.KMSAccessKeyId, kms_access_key_secret, config.KMSRegion, config.CMKID)
+            crypto_provider=oss2.crypto.RsaProvider(__key_pair, passphrase=rsa_passphrase)
             )
 
         try:  # 检测Bucket是否存在
@@ -134,14 +149,6 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
         except oss2.exceptions.NoSuchBucket:
             logger.critical("Bucket:\"%s\"不存在" % config.bucket_name)
             raise ValueError("Bucket:\"%s\"不存在" % config.bucket_name)
-
-        try:  # 检测KMS配置有效性
-            KmsClient(OpenApiModels.Config(access_key_id=config.KMSAccessKeyId, access_key_secret=kms_access_key_secret,
-                                           endpoint='kms.%s.aliyuncs.com' % config.KMSRegion)).generate_data_key(KmsModels.GenerateDataKeyRequest(key_id=config.CMKID))
-        except:
-            logger.critical("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
-            raise ValueError("无法调用KMS服务生成密钥，请检查相关配置，以及SK是否输入正确")
-        del kms_access_key_secret
 
         self.__ping_cmd = ["ping", "1", config.OssEndpoint]
         if os.name == 'nt':
@@ -155,6 +162,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % config.OssEndpoint)
 
         self.__restore_configuration_model = [oss2.models.RESTORE_TIER_EXPEDITED, oss2.models.RESTORE_TIER_STANDARD, oss2.models.RESTORE_TIER_BULK]
+        self.__multipart_upload_size = 1024 * 1024 * 50
 
     def encrypt_and_upload_files(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, cache_control='no-store',
                                  compare_sha256_before_uploading=False):
@@ -168,9 +176,11 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             cache_control (str, 可选)
             compare_sha256_before_uploading (bool, 可选): 是否在上传之前对比远端文件的sha256，如相同则跳过上传
         """
+        if storage_class not in ["Standard", "IA", "Archive", "ColdArchive"]:
+            logger.warning("[encrypt_and_upload_files]上传文件%s时，storage_class错误" % local_file_name)
+            storage_class = "Standard"
         if not file_sha256:
             file_sha256 = calculate_local_file_sha256(local_file_name)
-        retry_count = 0
         if compare_sha256_before_uploading:
             try:
                 remote_object_sha256 = self.get_remote_file_headers(remote_object_name)['x-oss-meta-sha256']
@@ -179,15 +189,15 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             if remote_object_sha256 == file_sha256:
                 logger.info("[encrypt_and_upload_files]sha256相同，跳过%s文件的上传" % local_file_name)
                 return 200
+        retry_count = 0
         while True:
             try:
-
                 retry_count += 1
                 oss2.resumable_upload(
                     self.__bucket, remote_object_name, local_file_name,
                     store=oss2.ResumableStore(root=config.temp_dir),
-                    multipart_threshold=1024 * 1024 * 50,
-                    part_size=1024 * 1024 * 50,
+                    multipart_threshold=self.__multipart_upload_size,
+                    part_size=self.__multipart_upload_size,
                     num_threads=4,
                     headers={
                         "content-length": str(os.path.getsize(local_file_name)),
@@ -501,7 +511,7 @@ if __name__ == "__main__":
     if args.check_configs:
         check_configs()
     print(args)
-    r_oss = OssOperation(args.kms_sk)
+    r_oss = OssOperation()
 
     if args.download_file:
         print(r_oss.download_and_decrypt_file(args.download_file[1], args.download_file[0]))

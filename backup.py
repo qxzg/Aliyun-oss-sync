@@ -17,7 +17,7 @@ try:
 except ModuleNotFoundError:
     raise Exception("无法找到config.py")
 
-logger = logging.getLogger("main")
+logger = logging.getLogger("backup")
 
 
 def create_logger(no_file_logger: bool = False):
@@ -71,14 +71,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--compare_sha256_before_uploading', action='store_true', help='添加此选项将会在上传文件前对比远端Object Header中的sha256，如相同则会跳过上传。')
-    parser.add_argument('--kms_sk', help='以参数的形式输入KMS服务的SK')
     parser.add_argument('--no_file_logger', action='store_true', help='不将日志写入文件')
     args = parser.parse_args()
 
     create_logger(args.no_file_logger)
     check_configs()
     color = Colored()
-    oss = OssOperation(kms_access_key_secret=args.kms_sk)
+    oss = OssOperation()
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
     os.chdir(config.local_base_dir)
