@@ -36,6 +36,18 @@ def create_logger(no_file_logger: bool = False):
         logger.addHandler(fhlr)
 
 
+def sha256_to_path(__sha256: str) -> str:
+    """将sha256字符串转换为目录结构
+    """
+    if len(__sha256) != 64:
+        logger.error("[sha256_to_path]不正确的输入\"%s\"" % str(__sha256))
+        raise ValueError
+    __str_list = list(__sha256)
+    __str_list.insert(1, "/")
+    __str_list.insert(5, "/")
+    return "".join(__str_list)
+
+
 def scan_backup_dirs() -> dict:
     """扫描备份目录
     """
@@ -61,9 +73,9 @@ def scan_backup_dirs() -> dict:
                 total_file_size += file_size
                 if file_size < oss_block_size:
                     oss_waste_size += oss_block_size - file_size
-    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s" %
+    logger.info("备份文件扫描完成\n备份文件总数：%s\n备份文件总大小：%s\n实际占用OSS大小：%s\n浪费的OSS容量：%s\n存储类型为：%s\n是否加密文件名：%s" %
                 (color.red(len(local_files_to_sha256)), color.red(bytes_to_str(total_file_size)), color.red(bytes_to_str(oss_waste_size + total_file_size)),
-                 color.red(bytes_to_str(oss_waste_size)), color.red(config.default_storage_class)))
+                 color.red(bytes_to_str(oss_waste_size)), color.red(config.default_storage_class), color.red(config.Encrypted_Filename_With_Sha256)))
     return local_files_to_sha256
 
 
@@ -71,13 +83,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--compare_sha256_before_uploading', action='store_true', help='添加此选项将会在上传文件前对比远端Object Header中的sha256，如相同则会跳过上传。')
+    parser.add_argument('--rsa_passphrase', help='RSA私钥密码')
     parser.add_argument('--no_file_logger', action='store_true', help='不将日志写入文件')
     args = parser.parse_args()
 
     create_logger(args.no_file_logger)
     check_configs()
     color = Colored()
-    oss = OssOperation()
+    oss = OssOperation(rsa_passphrase=args.rsa_passphrase)
     local_json_filename = config.temp_dir + "sha256_local.json"
     remote_json_filename = config.temp_dir + "sha256_remote.json"
     os.chdir(config.local_base_dir)
@@ -123,43 +136,62 @@ if __name__ == "__main__":
 
         progress.start_task(task)
         i = 0
-        for path in list(local_files_sha256):  # TODO: 实现多线程计算sha256  doc: https://www.liaoxuefeng.com/wiki/1016959663602400/1017628290184064
+        for path in list(local_files_sha256):
             if i >= 2500:
                 time.sleep(30)
                 i = 0
             progress.update(task, description="[red]正在计算哈希", advance=1, filename=path)
             sha256 = calculate_local_file_sha256(path)
             progress.update(task, description="[red]正在上传文件")
-            if not sha256:
+            if not sha256:  # 计算sha256时出错，跳过该文件
                 del (local_files_sha256[path])
                 logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
                 continue
             local_files_sha256[path] = sha256
-            if path in remote_files_sha256:
-                if remote_files_sha256[path] == sha256:
-                    continue
+
+            if not config.Encrypted_Filename_With_Sha256:
+                if path in remote_files_sha256:
+                    if remote_files_sha256[path] == sha256:  # 如果远端同名文件的sha256相同则跳过
+                        continue
+                    elif sha256 in sha256_to_remote_file:  # 如果远端存在同sha256文件则将本文件加入copy_list
+                        copy_list[config.remote_base_dir + path] = config.remote_base_dir + sha256_to_remote_file[sha256]
+                    else:  # 上传文件并覆盖
+                        i += 1
+                        try:
+                            oss.encrypt_and_upload_files(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
+                                                         file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
+                        except FileNotFoundError:
+                            logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
+                            del (local_files_sha256[path])
+                        except oss2.exceptions.RequestError:
+                            logger.warning("由于网络错误无法上传文件%s" % path)
+                            del (local_files_sha256[path])
+                        else:
+                            upload_list.append(path)
+                            uploaded_file_size += os.path.getsize(path)
                 elif sha256 in sha256_to_remote_file:
                     copy_list[config.remote_base_dir + path] = config.remote_base_dir + sha256_to_remote_file[sha256]
-                else:  # 上传文件并覆盖
+                else:  # 上传新增文件
                     i += 1
                     try:
                         oss.encrypt_and_upload_files(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
                                                      file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
                     except FileNotFoundError:
-                        logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
+                        logger.warning("上传时无法找到文件%s" % path)
                         del (local_files_sha256[path])
                     except oss2.exceptions.RequestError:
                         logger.warning("由于网络错误无法上传文件%s" % path)
                         del (local_files_sha256[path])
                     else:
                         upload_list.append(path)
-            elif sha256 in sha256_to_remote_file:
-                copy_list[config.remote_base_dir + path] = config.remote_base_dir + sha256_to_remote_file[sha256]
-            else:  # 上传新增文件
+                        uploaded_file_size += os.path.getsize(path)
+
+            elif sha256 not in sha256_to_remote_file:
                 i += 1
+                remote_filename = sha256
                 try:
-                    oss.encrypt_and_upload_files(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
-                                                 file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
+                    oss.encrypt_and_upload_files(path, config.remote_base_dir + sha256_to_path(sha256), storage_class=config.default_storage_class,
+                                                 file_sha256=sha256)
                 except FileNotFoundError:
                     logger.warning("上传时无法找到文件%s" % path)
                     del (local_files_sha256[path])
@@ -235,9 +267,15 @@ if __name__ == "__main__":
             oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
 
     delete_list = []  # 需要删除的文件列表
-    for path, sha256 in remote_files_sha256.items():
-        if path not in local_files_sha256:
-            delete_list.append(config.remote_base_dir + path)
+    if not config.Encrypted_Filename_With_Sha256:
+        for path, sha256 in remote_files_sha256.items():
+            if path not in local_files_sha256:
+                delete_list.append(config.remote_base_dir + path)
+    else:
+        sha256_to_local_file = list(local_files_sha256.values())
+        for sha256 in sha256_to_remote_file:
+            if sha256 not in sha256_to_local_file:
+                delete_list.append(config.remote_base_dir + sha256_to_path(sha256))
     if len(delete_list) != 0:
         oss.delete_remote_files(delete_list)
 
