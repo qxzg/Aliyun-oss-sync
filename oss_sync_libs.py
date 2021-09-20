@@ -192,7 +192,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             try:
                 remote_object_sha256 = self.get_remote_file_headers(remote_object_name)['x-oss-meta-sha256']
             except:
-                remote_object_sha256 = file_sha256
+                remote_object_sha256 = None
             if remote_object_sha256 == file_sha256:
                 logger.info("[encrypt_and_upload_files]sha256相同，跳过%s文件的上传" % local_file_name)
                 return 200
