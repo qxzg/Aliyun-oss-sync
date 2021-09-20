@@ -233,8 +233,8 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
         """从OSS下载并解密文件
 
         Args:
-            local_file_name (str)
-            remote_object_name (str)
+            local_file_name (str): 本地文件名
+            remote_object_name (str) 远端文件名
             version_id (str, 可选)
             verify_integrity: 设置为True会在下载之后校验sha256
         """

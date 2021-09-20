@@ -55,10 +55,7 @@ def scan_backup_dirs() -> dict:
     local_files_to_sha256 = {}
     total_file_size = 0
     oss_waste_size = 0
-    if config.default_storage_class == "Standard":
-        oss_block_size = 0
-    else:
-        oss_block_size = 1024 * 64
+    oss_block_size = 1024 * 64
     for backup_dirs in config.backup_dirs:
         logger.info("正在读取备份目录:" + backup_dirs)
         for root, dirs, files in os.walk(backup_dirs):
@@ -292,7 +289,8 @@ if __name__ == "__main__":
 
     oss.encrypt_and_upload_files(local_json_filename, json_on_oss, storage_class='Standard', compare_sha256_before_uploading=True)
 
-    logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
+    if not config.Encrypted_Filename_With_Sha256:
+        logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
     logger.info("已删除的文件列表:\n" + str(delete_list))
     logger.info("已上传的文件列表:\n" + str(upload_list))
     total_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
