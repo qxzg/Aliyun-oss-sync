@@ -20,6 +20,8 @@ SCT_Send_Key = ""  # Server酱·Turbo推送密钥 （可选填）
 # 在计算文件哈希值时允许一次性打开的最大文件大小(MB)，提高此参数可以加快大文件的计算速度，但是会增加内存消耗
 MaxMemoryUsageAllow = (1024 * 1024) * 1024
 
+Encrypted_Filename_With_Sha256 = False
+
 passphrase = None  # 本地RSA公钥私钥密码
 private_key = '''-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC6eT+L17XZNl1J
