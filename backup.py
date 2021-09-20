@@ -91,7 +91,7 @@ if __name__ == "__main__":
     if not str(input("确认继续请输入Y，否则输入N：")) in ['y', 'Y']:
         exit()
 
-    with Progress(
+    with Progress(  # 初始化进度条
             "[progress.percentage]{task.percentage:>3.2f}%",
             BarColumn(),
             FileCount(),

@@ -120,28 +120,33 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
 
         oss2.set_file_logger(config.LogFile, 'oss2', config.LogLevel)
 
-        try:  # 自动判断是否需要rsa私钥密码
-            RSA.importKey(config.rsa_private_key)
-        except ValueError:
-            if not rsa_passphrase:
-                rsa_passphrase = str(getpass("请输私钥密码（无密码请直接回车）："))
-            while True:
-                try:
-                    RSA.importKey(config.rsa_private_key, passphrase=rsa_passphrase)
-                except ValueError:
-                    logger.exception("私钥密码不正确")
-                    rsa_passphrase = str(getpass("私钥密码不正确，请重新输入："))
-                else:
-                    break
-        else:
-            rsa_passphrase = None
+        __rsa_key_pair = {}  # 初始化密钥对
+        if config.rsa_private_key:
+            __rsa_key_pair['private_key'] = config.rsa_private_key
+            try:  # 自动判断是否需要rsa私钥密码
+                RSA.importKey(config.rsa_private_key)
+            except ValueError:
+                if not rsa_passphrase:
+                    rsa_passphrase = str(getpass("请输私钥密码（无密码请直接回车）："))
+                while True:
+                    try:
+                        RSA.importKey(config.rsa_private_key, passphrase=rsa_passphrase)
+                    except ValueError:
+                        logger.exception("私钥密码不正确")
+                        rsa_passphrase = str(getpass("私钥密码不正确，请重新输入："))
+                    else:
+                        break
+            else:
+                rsa_passphrase = None
+        if config.rsa_public_key:
+            __rsa_key_pair['public_key'] = config.rsa_public_key
 
         self.__OssEndpoint = 'https://' + config.OssEndpoint
-        __key_pair = {'private_key': config.rsa_private_key, 'public_key': config.rsa_public_key}
+
         self.__bucket = oss2.CryptoBucket(
             oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret),
             self.__OssEndpoint, config.bucket_name,
-            crypto_provider=oss2.crypto.RsaProvider(__key_pair, passphrase=rsa_passphrase)
+            crypto_provider=oss2.crypto.RsaProvider(__rsa_key_pair, passphrase=rsa_passphrase)
             )
 
         try:  # 检测Bucket是否存在
@@ -162,7 +167,9 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % config.OssEndpoint)
 
         self.__restore_configuration_model = [oss2.models.RESTORE_TIER_EXPEDITED, oss2.models.RESTORE_TIER_STANDARD, oss2.models.RESTORE_TIER_BULK]
-        self.__multipart_upload_size = 1024 * 1024 * 50
+        self.__multipart_upload_size = 1024 * 1024 * 50  # 上传分片大小
+
+        del __rsa_key_pair, rsa_passphrase
 
     def encrypt_and_upload_files(self, local_file_name, remote_object_name, storage_class='Standard', file_sha256=None, cache_control='no-store',
                                  compare_sha256_before_uploading=False):
@@ -256,7 +263,10 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                 logger.error("无法找到文件" + remote_object_name)
                 return 404
         if verify_integrity:
-            if calculate_local_file_sha256(local_file_name) == req.headers['x-oss-meta-sha256']:
+            if 'x-oss-meta-sha256' not in req.headers:
+                logger.error('[download_and_decrypt_file] Object %s 的Header中不存在sha256，无法校验' % remote_object_name)
+                raise
+            elif calculate_local_file_sha256(local_file_name) == req.headers['x-oss-meta-sha256']:
                 return 200
             else:
                 logger.error('[download_and_decrypt_file] Object: %s 校验不通过' % remote_object_name)
