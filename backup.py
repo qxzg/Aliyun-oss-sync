@@ -104,7 +104,7 @@ if __name__ == "__main__":
         task = progress.add_task("[red]正在准备上传...", total=len(local_files_sha256), start=False, filename="")
 
         # 获取远程文件json
-        json_on_oss = "sha256/%s.json" % config.remote_base_dir[:-1]
+        json_on_oss = "index/%s.json" % config.remote_base_dir[:-1]
         req = oss.download_and_decrypt_file(remote_json_filename, json_on_oss)
         if req == 200:
             with open(remote_json_filename, 'r') as fobj:
