@@ -91,8 +91,8 @@ if __name__ == "__main__":
     check_configs()
     color = Colored()
     oss = OssOperation(rsa_passphrase=args.rsa_passphrase)
-    local_json_filename = config.temp_dir + "sha256_local.json"
-    remote_json_filename = config.temp_dir + "sha256_remote.json"
+    local_json_filename = config.temp_dir + config.remote_base_dir[:-1] + "sha256_local_index.json"
+    remote_json_filename = config.temp_dir + config.remote_base_dir[:-1] + "sha256_remote_index.json"
     os.chdir(config.local_base_dir)
 
     ######################################################################
