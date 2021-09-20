@@ -193,6 +193,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                 remote_object_sha256 = self.get_remote_file_headers(remote_object_name)['x-oss-meta-sha256']
             except:
                 remote_object_sha256 = None
+                logger.warning("[encrypt_and_upload_files]无法获取远端Object的sha256，将强制上传该文件")
             if remote_object_sha256 == file_sha256:
                 logger.info("[encrypt_and_upload_files]sha256相同，跳过%s文件的上传" % local_file_name)
                 return 200
@@ -511,7 +512,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--check_configs', action='store_true', help='执行check_configs')
-    parser.add_argument('--kms_sk', help='以参数的形式输入KMS服务的SK')
+    parser.add_argument('--rsa_passphrase', help='RSA私钥密码')
     parser_group = parser.add_mutually_exclusive_group()
     parser_group.add_argument('-d', help='下载文件', nargs=2, type=str, metavar=('Remote_File', 'Local_File'), dest='download_file')
     parser_group.add_argument('-u', help='上传文件', nargs=2, type=str, metavar=('Local_File', 'Remote_File'), dest='upload_file')
@@ -521,7 +522,7 @@ if __name__ == "__main__":
     if args.check_configs:
         check_configs()
     print(args)
-    r_oss = OssOperation()
+    r_oss = OssOperation(args.rsa_passphrase)
 
     if args.download_file:
         print(r_oss.download_and_decrypt_file(args.download_file[1], args.download_file[0]))
