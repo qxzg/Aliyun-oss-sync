@@ -208,7 +208,6 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                     part_size=self.__multipart_upload_size,
                     num_threads=4,
                     headers={
-                        "content-length": str(os.path.getsize(local_file_name)),
                         "Cache-Control": cache_control,
                         "x-oss-server-side-encryption": "KMS",
                         "x-oss-storage-class": storage_class,
