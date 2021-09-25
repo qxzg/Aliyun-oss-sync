@@ -198,6 +198,7 @@ if __name__ == "__main__":
                 else:
                     upload_list.append(path)
                     uploaded_file_size += os.path.getsize(path)
+                    sha256_to_remote_file[sha256] = sha256_to_path(sha256)
 
     if len(copy_list) != 0:
         total_size_to_be_copied = 0.0
