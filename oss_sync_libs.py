@@ -209,6 +209,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                     num_threads=4,
                     headers={
                         "Cache-Control": cache_control,
+                        "Content-Type": "application/octet-stream",
                         "x-oss-server-side-encryption": "KMS",
                         "x-oss-storage-class": storage_class,
                         "x-oss-meta-sha256": file_sha256
