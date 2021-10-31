@@ -52,7 +52,7 @@ def is_dir_excluded(_dir: str) -> bool:
     """如果目录在排除列表中则返回True，反之返回False
     """
     for exclude_dir in config.backup_exclude:
-        if not fnmatchcase(_dir, exclude_dir):
+        if fnmatchcase(_dir, exclude_dir):
             return True
     return False
 
