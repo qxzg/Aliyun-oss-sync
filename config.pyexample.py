@@ -7,7 +7,7 @@ default_storage_class = "Archive"  # Object的存储类型，取值：Standard�
 local_base_dir = "/mnt/"  # 本地工作目录（绝对路径, eg：/mnt/）
 remote_base_dir = "nas-backup/"  # 上传至OSS时的路径前缀
 backup_dirs = ["personal/", "www/nextcloud/data/"]  # 备份目录（相对于local_base_dir, eg:data/）
-backup_exclude = ['personal/path/to/exclude']  # 相对路径，以Unix 文件名模式匹配（大小写敏感）
+backup_exclude = ['personal/path/to/exclude/*, */.recycle/*']  # 相对路径，以Unix 文件名模式匹配（大小写敏感）
 temp_dir = "/tmp/oss-sync/"  # 临时文件位置，绝对路径
 Max_Retries = 5  # 遇到网络错误时最大重试次数
 
