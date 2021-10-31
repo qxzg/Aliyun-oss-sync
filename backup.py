@@ -219,11 +219,13 @@ if __name__ == "__main__":
         elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE:  # TODO 支持冷归档存储时文件复制的命令行参数，避免输中途入方案
             total_size_to_be_copied_GB = total_size_to_be_copied / (1024*1024*1024)
             plan_description = "\n总共需要复制%s文件。请输入对应的数字以选择处理方案：" \
-                               "\n0. 不复制，直接从本地进行上传。预计耗时：%s（以30Mbps上传速度计算）"\
+                               "\n0. 不复制，直接从本地进行上传。预计耗时：%s（以30Mbps上传速度计算）| %s（以100Mbps上传速度计算）"\
                                "\n1. 使用高优先级解冻文件（耗时：1小时），然后再复制。\n\t预计耗费：%.3f元"\
                                "\n2. 使用批量先级解冻文件（耗时：2~5小时），然后再复制。\n\t预计耗费：%.3f元"\
                                "\n3. 使用标准先级解冻文件（耗时：5~12小时），然后再复制。\n\t预计耗费：%.3f元" % \
-                               (bytes_to_str(total_size_to_be_copied), time.strftime("%H时%M分%S秒", time.gmtime(total_size_to_be_copied / (1024 * 128 * 30))),
+                               (bytes_to_str(total_size_to_be_copied),
+                                time.strftime("%H时%M分%S秒", time.gmtime(total_size_to_be_copied / (1024 * 128 * 30))),
+                                time.strftime("%H时%M分%S秒", time.gmtime(total_size_to_be_copied / (1024 * 128 * 100))),
                                 (len(src_obj_list) * 0.003 + total_size_to_be_copied_GB * 0.2),
                                 (len(src_obj_list) * 0.0003 + total_size_to_be_copied_GB * 0.06),
                                 (len(src_obj_list) * 0.00003 + total_size_to_be_copied_GB * 0.03))
