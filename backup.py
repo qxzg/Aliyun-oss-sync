@@ -4,13 +4,13 @@ import json
 import logging
 import os
 import time
+from fnmatch import fnmatchcase
 
 import oss2
 from rich.progress import (BarColumn, Progress, TextColumn,
                            TimeElapsedColumn)
 
-from oss_sync_libs import (calculate_local_file_sha256, check_configs, Colored,
-                           FileCount, OssOperation, sct_push, bytes_to_str)
+from oss_sync_libs import (Colored, FileCount, OssOperation, bytes_to_str, calculate_local_file_sha256, check_configs, sct_push)
 
 try:
     import config
@@ -48,21 +48,29 @@ def sha256_to_path(__sha256: str) -> str:
     return "".join(__str_list)
 
 
+def is_dir_excluded(_dir: str) -> bool:
+    """如果目录在排除列表中则返回True，反之返回False
+    """
+    for exclude_dir in config.backup_exclude:
+        if not fnmatchcase(_dir, exclude_dir):
+            return True
+    return False
+
+
 def scan_backup_dirs() -> dict:
     """扫描备份目录
     """
     global logger
     local_files_to_sha256 = {}
-    total_file_size = 0
-    oss_waste_size = 0
+    oss_waste_size = total_file_size = 0
     oss_block_size = 1024 * 64
     for backup_dirs in config.backup_dirs:
         logger.info("正在读取备份目录:" + backup_dirs)
         for root, dirs, files in os.walk(backup_dirs):
-            if root.startswith(config.backup_exclude):
-                continue  # 排除特定文件夹
             for file_path in files:
                 relative_path = os.path.join(root, file_path)  # 合成相对于local_base_dir的路径
+                if is_dir_excluded(relative_path):
+                    continue
                 file_size = os.path.getsize(relative_path)
                 if file_size == 0:
                     continue  # 排除文件大小为0的空文件
