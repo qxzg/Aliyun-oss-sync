@@ -53,7 +53,7 @@ if __name__ == '__main__':
             sha256_to_files[obj[11:]] = sha256
     with open(rebuild_file, 'w') as fobj:
         json.dump(sha256_to_files, fobj)
-    r_oss.encrypt_and_upload_files(rebuild_file, "sha256/%s.json" % config.remote_base_dir[:-1], compare_sha256_before_uploading=True, storage_class='Standard')
+    r_oss.encrypt_and_upload_files(rebuild_file, "index/%s.json" % config.remote_base_dir[:-1], compare_sha256_before_uploading=True, storage_class='Standard')
     print(err_files)
     print("无sha256的文件总数：" + str(len(err_files)))
     if config.SCT_Send_Key:
