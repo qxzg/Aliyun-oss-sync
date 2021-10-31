@@ -453,9 +453,9 @@ def check_configs():
     if config.remote_base_dir[0] == '/' or config.remote_base_dir[-1] != '/':
         logger.critical("远端工作目录(remote_base_dir)必须为带有后导/的格式")
         raise ValueError("远端工作目录(remote_base_dir)必须为带有后导/的格式")
-    if type(config.backup_exclude) != tuple:
-        logger.critical("备份排除目录(backup_exclude_dirs)必须为tuple类型")
-        raise ValueError("备份排除目录(backup_exclude_dirs)必须为tuple类型")
+    if type(config.backup_exclude) != list:
+        logger.critical("备份排除目录(backup_exclude_dirs)必须为list类型")
+        raise ValueError("备份排除目录(backup_exclude_dirs)必须为list类型")
 
     if not os.path.isabs(config.local_base_dir) or config.local_base_dir[-1] != '/':
         logger.critical("本地工作目录(local_base_dir)必须为带有后导/的绝对路径")
