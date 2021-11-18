@@ -3,5 +3,5 @@ numpy~=1.21.4
 tenacity~=8.0.1
 oss2~=2.15.0
 requests~=2.26.0
-rich~=10.13.0
+rich~=10.14.0
 pycryptodome==3.11.0
