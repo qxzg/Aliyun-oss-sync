@@ -224,7 +224,7 @@ if __name__ == "__main__":
             while oss.check_restore_status(src_obj_list[-1]) == 200:
                 time.sleep(10)
             oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
-        elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE:  # TODO 支持冷归档存储时文件复制的命令行参数，避免输中途入方案
+        elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE and total_size_to_be_copied > config.skip_restore_if_copied_file_is_less:
             total_size_to_be_copied_GB = total_size_to_be_copied / (1024*1024*1024)
             plan_description = "\n总共需要复制%s文件。请输入对应的数字以选择处理方案：" \
                                "\n0. 不复制，直接从本地进行上传。预计耗时：%s（以30Mbps上传速度计算）| %s（以100Mbps上传速度计算）"\
@@ -271,6 +271,10 @@ if __name__ == "__main__":
                 oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
             # https://help.aliyun.com/document_detail/51374.html#title-vi1-wio-4gv
             # https://www.aliyun.com/price/product#/oss/detail
+        elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE and total_size_to_be_copied <= config.skip_restore_if_copied_file_is_less:
+            logger.info("当前需要复制%s文件，小于%s，自动启动上传操作")
+            for dst_obj, src_obj in copy_list.items():
+                oss.encrypt_and_upload_files(dst_obj[remote_prefix_length:], dst_obj, storage_class=config.default_storage_class)
         else:
             oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
 
