@@ -10,6 +10,7 @@ backup_dirs = ["personal/", "www/nextcloud/data/"]  # 备份目录（相对于lo
 backup_exclude = ['personal/path/to/exclude/*, */.recycle/*']  # 相对路径，以Unix 文件名模式匹配（大小写敏感）
 temp_dir = "/tmp/oss-sync/"  # 临时文件位置，绝对路径
 Max_Retries = 5  # 遇到网络错误时最大重试次数
+skip_restore_if_copied_file_is_less = (1024 * 1024) * 1024
 
 LogFile = "/root/oss-sync.log"  # 日志文件位置，推荐使用绝对路径
 LogLevel = "INFO"  # 日志级别，取值：DEBUG，INFO，WARNING，ERROR，CRITICAL
