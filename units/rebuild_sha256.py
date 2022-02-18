@@ -55,6 +55,7 @@ if __name__ == '__main__':
         json.dump(sha256_to_files, fobj)
     r_oss.encrypt_and_upload_files(rebuild_file, "index/%s.json" % config.remote_base_dir[:-1], compare_sha256_before_uploading=True, storage_class='Standard')
     print(err_files)
-    print("无sha256的文件总数：" + str(len(err_files)))
+    print("[rebuild-sha256]重建完成，找到不匹配的记录共 %d 条：" % len(err_files))
+    print("记录总数 %d 条" % len(sha256_to_files))
     if config.SCT_Send_Key:
         sct_push("[rebuild-sha256]重建完成", "#### sha256.json已重建完成，请登录服务器检查")
