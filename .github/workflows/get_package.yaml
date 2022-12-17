@@ -1,7 +1,8 @@
-name: get packacge for truenas scale
+name: get package for truenas scale
 
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/get_package.yaml'
       - 'requirements.txt'
@@ -10,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
 
-   steps:
+  steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
       with:
