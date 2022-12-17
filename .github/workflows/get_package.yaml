@@ -13,15 +13,16 @@ jobs:
 
   steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - name: get package
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9.2'
-    - run: |
-      cd $GITHUB_WORKSPACE
-      python --version
-      pip --version
-      rm -rf package/
-      pip install -r requirements.txt -t package/
+      run: |
+        cd $GITHUB_WORKSPACE
+        python --version
+        pip --version
+        rm -rf package/
+        pip install -r requirements.txt -t package/
     - name: Upload package
       uses: actions/upload-artifact@v2
       with:
