@@ -30,4 +30,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: package.tar.gz
-          path: ./package.tar.gz
+          path: ./package/package.tar.gz
