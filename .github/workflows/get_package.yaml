@@ -2,7 +2,7 @@ name: get package for truenas scale
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - '.github/workflows/get_package.yaml'
       - 'requirements.txt'
