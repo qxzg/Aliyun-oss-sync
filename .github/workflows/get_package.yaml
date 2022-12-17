@@ -11,20 +11,20 @@ jobs:
   build:
     runs-on: ubuntu-20.04
 
-  steps:
-    - uses: actions/checkout@v3
-    - name: get package
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9.2'
-      run: |
-        cd $GITHUB_WORKSPACE
-        python --version
-        pip --version
-        rm -rf package/
-        pip install -r requirements.txt -t package/
-    - name: Upload package
-      uses: actions/upload-artifact@v2
-      with:
-        name: package
-        path: ./package/
+    steps:
+      - uses: actions/checkout@v3
+      - name: get package
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9.2'
+        run: |
+          cd $GITHUB_WORKSPACE
+          python --version
+          pip --version
+          rm -rf package/
+          pip install -r requirements.txt -t package/
+      - name: Upload package
+        uses: actions/upload-artifact@v2
+        with:
+          name: package
+          path: ./package/
