@@ -24,8 +24,10 @@ jobs:
           pip --version
           rm -rf package/
           pip install -r requirements.txt -t package/
+          cd package
+          tar zcvf package.tar.gz *
       - name: Upload package
         uses: actions/upload-artifact@v2
         with:
-          name: package
-          path: ./package/
+          name: package.tar.gz
+          path: ./package.tar.gz
