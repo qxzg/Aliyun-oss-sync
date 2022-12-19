@@ -87,7 +87,7 @@ def scan_backup_dirs() -> dict:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--compare_sha256_before_uploading', action='store_true', help='添加此选项将会在上传文件前对比远端Object Header中的sha256，如相同则会跳过上传。')
+    parser.add_argument('--compare_sha256_before_uploading', action='store_true', help='添加此选项将会在上传文件前对比远端Object Header中的sha256，如相同则会跳过上传。适用于远端index不再可靠时')
     parser.add_argument('--rsa_passphrase', help='RSA私钥密码')
     parser.add_argument('--no_file_logger', action='store_true', help='不将日志写入文件')
     args = parser.parse_args()
