@@ -12,9 +12,11 @@ RUN apt-get update -y\
     && cd /etc/ssh\
     && sed -i -e "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/g" sshd_config\
     && sed -i -e "s/PasswordAuthentication yes/PasswordAuthentication no/g" sshd_config\
+    && sed -i -e "s/#Port/Port/g" /etc/ssh/sshd_config\
+    && sed -i -e "s/Port 22/Port 28849/g" /etc/ssh/sshd_config\
     && echo "Protocol 2" >> sshd_config
 
-EXPOSE 22
+EXPOSE 28849
 
 WORKDIR /usr/src/Aliyun-oss-sync
 
