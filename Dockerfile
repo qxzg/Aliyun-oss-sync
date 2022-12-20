@@ -3,7 +3,7 @@ FROM python:3.10-bullseye
 ENV LANG C.UTF-8
 
 RUN apt-get update -y\
-    && apt-get install -y --no-install-recommends python-dev screen tmux ssh\
+    && apt-get install -y --no-install-recommends python-dev screen pyinstaller ssh\
     && apt-get clean\
     && rm -rf /var/lib/apt/lists/*\
     && cd && mkdir .ssh && chmod 700 .ssh/ && cd .ssh \
