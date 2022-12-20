@@ -4,13 +4,12 @@ ENV LANG C.UTF-8
 
 WORKDIR /usr/src/Aliyun-oss-sync
 
-RUN apt-get update -y
-RUN apt-get install -y screen tmux
-RUN apt-get clean
-RUN rm -rf /var/lib/apt/lists/*
-
-RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade pip
+RUN apt-get update -y&\
+apt-get install -y screen tmux&\
+apt-get clean&\
+rm -rf /var/lib/apt/lists/*
 
 COPY . .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade pip&\
+pip install --no-cache-dir -r requirements.txt
