@@ -166,7 +166,7 @@ if __name__ == "__main__":
                             oss.encrypt_and_upload_files(path, config.remote_base_dir + path, storage_class=config.default_storage_class,
                                                          file_sha256=sha256, compare_sha256_before_uploading=args.compare_sha256_before_uploading)
                         except FileNotFoundError:
-                            logger.warning("上传时无法找到文件%s，可能是由于文件被删除" % path)
+                            logger.warning("上传时无法找到文件%s" % path)
                             del (local_files_sha256[path])
                         except oss2.exceptions.RequestError:
                             logger.warning("由于网络错误无法上传文件%s" % path)
@@ -251,7 +251,14 @@ if __name__ == "__main__":
 
             if plan_number == 0:
                 for dst_obj, src_obj in copy_list.items():
-                    oss.encrypt_and_upload_files(dst_obj[remote_prefix_length:], dst_obj, storage_class=config.default_storage_class)
+                    try:
+                        oss.encrypt_and_upload_files(dst_obj[remote_prefix_length:], dst_obj, storage_class=config.default_storage_class)
+                    except FileNotFoundError:
+                        logger.warning("上传时无法找到文件%s" % dst_obj[remote_prefix_length:])
+                        del (local_files_sha256[dst_obj[remote_prefix_length:]])
+                    except oss2.exceptions.RequestError:
+                        logger.warning("由于网络错误无法上传文件%s" % dst_obj[remote_prefix_length:])
+                        del (local_files_sha256[dst_obj[remote_prefix_length:]])
             else:
                 for src_obj in src_obj_list:
                     oss.restore_remote_file(src_obj, restore_configuration=plan_number-1)
@@ -272,9 +279,16 @@ if __name__ == "__main__":
             # https://help.aliyun.com/document_detail/51374.html#title-vi1-wio-4gv
             # https://www.aliyun.com/price/product#/oss/detail
         elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE and total_size_to_be_copied <= config.skip_restore_if_copied_file_is_less:
-            logger.info("当前需要复制%s文件，小于%s，自动启动上传操作")
+            logger.info("当前需要复制%s文件，小于%s，自动启动上传操作" % (bytes_to_str(total_size_to_be_copied), bytes_to_str(config.skip_restore_if_copied_file_is_less)))
             for dst_obj, src_obj in copy_list.items():
-                oss.encrypt_and_upload_files(dst_obj[remote_prefix_length:], dst_obj, storage_class=config.default_storage_class)
+                try:
+                    oss.encrypt_and_upload_files(dst_obj[remote_prefix_length:], dst_obj, storage_class=config.default_storage_class)
+                except FileNotFoundError:
+                    logger.warning("上传时无法找到文件%s" % dst_obj[remote_prefix_length:])
+                    del (local_files_sha256[dst_obj[remote_prefix_length:]])
+                except oss2.exceptions.RequestError:
+                    logger.warning("由于网络错误无法上传文件%s" % dst_obj[remote_prefix_length:])
+                    del (local_files_sha256[dst_obj[remote_prefix_length:]])
         else:
             oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
 
@@ -301,8 +315,10 @@ if __name__ == "__main__":
             json.dump(local_files_sha256, fobj, separators=(',', ':'))
 
     ######################################################################
-
-    oss.encrypt_and_upload_files(local_json_filename, json_on_oss, storage_class='Standard', compare_sha256_before_uploading=True)
+    try:
+        oss.encrypt_and_upload_files(local_json_filename, json_on_oss, storage_class='Standard', compare_sha256_before_uploading=True)
+    except oss2.exceptions.RequestError:
+        logger.warning("由于网络错误无法上传文件%s" % local_json_filename)
 
     if not config.Encrypted_Filename_With_Sha256:
         logger.info("已复制的文件列表:\n" + str(copy_list).replace("': '", "' <-- '"))
