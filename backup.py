@@ -69,7 +69,7 @@ def scan_backup_dirs() -> dict:
         for root, dirs, files in os.walk(backup_dirs):
             for file_path in files:
                 relative_path = os.path.join(root, file_path)  # 合成相对于local_base_dir的路径
-                if is_dir_excluded(relative_path):
+                if is_dir_excluded(relative_path) or file_path == '.DS_Store':
                     continue
                 file_size = os.path.getsize(relative_path)
                 if file_size == 0:
