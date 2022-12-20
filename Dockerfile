@@ -22,7 +22,7 @@ WORKDIR /usr/src/Aliyun-oss-sync
 
 COPY . .
 
-RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade  \
+RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir pyinstaller
 
