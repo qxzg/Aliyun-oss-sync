@@ -6,3 +6,6 @@ config.py
 *.json
 test.py
 .idea
+*.spec
+build/
+dist/
