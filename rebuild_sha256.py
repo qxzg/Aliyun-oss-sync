@@ -10,7 +10,6 @@ from oss_sync_libs import sct_push, OssOperation
 bucket = oss2.Bucket(oss2.Auth(config.OSSAccessKeyId, config.OSSAccessKeySecret), 'https://' + config.OssEndpoint, config.bucket_name)
 rebuild_file = 'sha256-rebuild.json'
 
-
 def get_remote_sha256(obj):
     global bucket
     while True:
@@ -50,12 +49,18 @@ if __name__ == '__main__':
         if not sha256:
             err_files.append(obj)
         else:
-            sha256_to_files[obj[11:]] = sha256
+            sha256_to_files[obj[len(config.remote_base_dir):]] = sha256
     with open(rebuild_file, 'w') as fobj:
         json.dump(sha256_to_files, fobj)
-    r_oss.encrypt_and_upload_files(rebuild_file, "index/%s.json" % config.remote_base_dir[:-1], compare_sha256_before_uploading=True, storage_class='Standard')
-    print(err_files)
-    print("[rebuild-sha256]重建完成，找到不匹配的记录共 %d 条：" % len(err_files))
-    print("记录总数 %d 条" % len(sha256_to_files))
+    r_oss.encrypt_and_upload_files(
+        rebuild_file,
+        "index/%s.json" % config.remote_base_dir[:-1],
+        compare_sha256_before_uploading=True,
+        storage_class='Standard'
+    )
+    if len(err_files) > 0:
+        print("[rebuild-sha256]重建完成，OSS中有 %d 个Object的Header中不存在sha256，分别是：" % len(err_files))
+        print(err_files)
+    print("[rebuild-sha256]记录总数 %d 条" % len(sha256_to_files))
     if config.SCT_Send_Key:
         sct_push("[rebuild-sha256]重建完成", "#### sha256.json已重建完成，请登录服务器检查")
