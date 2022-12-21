@@ -13,10 +13,10 @@ RUN apt-get update -y \
     && sed -i -e "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/g" sshd_config \
     && sed -i -e "s/PasswordAuthentication yes/PasswordAuthentication no/g" sshd_config \
     && sed -i -e "s/#Port/Port/g" /etc/ssh/sshd_config \
-    && sed -i -e "s/Port 22/Port 28849/g" /etc/ssh/sshd_config \
+    && sed -i -e "s/Port 22/Port 8848/g" /etc/ssh/sshd_config \
     && echo "Protocol 2" >> sshd_config
 
-EXPOSE 28849
+EXPOSE 8848
 
 WORKDIR /usr/src/Aliyun-oss-sync
 
@@ -26,4 +26,4 @@ RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir pyinstaller
 
-CMD /etc/init.d/ssh start && python3
+CMD ["/bin/bash", "//usr/src/Aliyun-oss-sync/units/init_docker.sh"]
