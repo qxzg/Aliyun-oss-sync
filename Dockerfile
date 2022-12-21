@@ -3,7 +3,7 @@ FROM python:3.10-bullseye
 ENV LANG C.UTF-8
 
 RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends python-dev screen vim ssh \
+    && apt-get install -y --no-install-recommends python-dev screen vim ssh iputils-ping net-tools \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && cd && mkdir .ssh && chmod 700 .ssh/ && cd .ssh \
@@ -26,4 +26,4 @@ RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir pyinstaller
 
-CMD ["/bin/bash", "//usr/src/Aliyun-oss-sync/units/init_docker.sh"]
+CMD ["/bin/bash", "/usr/src/Aliyun-oss-sync/units/init_docker.sh"]
