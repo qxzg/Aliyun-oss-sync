@@ -1,5 +1,5 @@
 crcmod~=1.7
-numpy~=1.25.2
+numpy~=1.26.0
 tenacity~=8.2.3
 oss2~=2.18.1
 requests~=2.31.0
