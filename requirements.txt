@@ -4,4 +4,4 @@ tenacity~=8.2.3
 oss2~=2.18.3
 requests~=2.31.0
 rich~=13.7.0
-pycryptodome==3.19.0
+pycryptodome==3.19.1
