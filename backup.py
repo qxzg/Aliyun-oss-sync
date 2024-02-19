@@ -217,13 +217,28 @@ if __name__ == "__main__":
                 src_obj_list.append(src_obj)
                 total_size_to_be_copied += oss.get_remote_file_size(src_obj)
 
-        if config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_ARCHIVE:
-            for src_obj in src_obj_list:
-                oss.restore_remote_file(src_obj)
-            time.sleep(90)
-            while oss.check_restore_status(src_obj_list[-1]) == 200:
-                time.sleep(10)
-            oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
+        if config.stored_in_DeepColdArchive:
+            logger.info("后续通过生命周期将存储类型沉降为DeepColdArchive，直接进行上传操作")
+            for dst_obj, src_obj in copy_list.items():
+                try:
+                    oss.encrypt_and_upload_files(dst_obj[remote_prefix_length:], dst_obj, storage_class=config.default_storage_class)
+                except FileNotFoundError:
+                    logger.warning("上传时无法找到文件%s" % dst_obj[remote_prefix_length:])
+                    del (local_files_sha256[dst_obj[remote_prefix_length:]])
+                except oss2.exceptions.RequestError:
+                    logger.warning("由于网络错误无法上传文件%s" % dst_obj[remote_prefix_length:])
+                    del (local_files_sha256[dst_obj[remote_prefix_length:]])
+        elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE and total_size_to_be_copied <= config.skip_restore_if_copied_file_is_less:
+            logger.info("当前需要复制%s文件，小于%s，自动启动上传操作" % (bytes_to_str(total_size_to_be_copied), bytes_to_str(config.skip_restore_if_copied_file_is_less)))
+            for dst_obj, src_obj in copy_list.items():
+                try:
+                    oss.encrypt_and_upload_files(dst_obj[remote_prefix_length:], dst_obj, storage_class=config.default_storage_class)
+                except FileNotFoundError:
+                    logger.warning("上传时无法找到文件%s" % dst_obj[remote_prefix_length:])
+                    del (local_files_sha256[dst_obj[remote_prefix_length:]])
+                except oss2.exceptions.RequestError:
+                    logger.warning("由于网络错误无法上传文件%s" % dst_obj[remote_prefix_length:])
+                    del (local_files_sha256[dst_obj[remote_prefix_length:]])
         elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE and total_size_to_be_copied > config.skip_restore_if_copied_file_is_less:
             total_size_to_be_copied_GB = total_size_to_be_copied / (1024*1024*1024)
             plan_description = "\n总共需要复制%s文件。请输入对应的数字以选择处理方案：" \
@@ -278,17 +293,13 @@ if __name__ == "__main__":
                 oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
             # https://help.aliyun.com/document_detail/51374.html#title-vi1-wio-4gv
             # https://www.aliyun.com/price/product#/oss/detail
-        elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_COLD_ARCHIVE and total_size_to_be_copied <= config.skip_restore_if_copied_file_is_less:
-            logger.info("当前需要复制%s文件，小于%s，自动启动上传操作" % (bytes_to_str(total_size_to_be_copied), bytes_to_str(config.skip_restore_if_copied_file_is_less)))
-            for dst_obj, src_obj in copy_list.items():
-                try:
-                    oss.encrypt_and_upload_files(dst_obj[remote_prefix_length:], dst_obj, storage_class=config.default_storage_class)
-                except FileNotFoundError:
-                    logger.warning("上传时无法找到文件%s" % dst_obj[remote_prefix_length:])
-                    del (local_files_sha256[dst_obj[remote_prefix_length:]])
-                except oss2.exceptions.RequestError:
-                    logger.warning("由于网络错误无法上传文件%s" % dst_obj[remote_prefix_length:])
-                    del (local_files_sha256[dst_obj[remote_prefix_length:]])
+        elif config.default_storage_class == oss2.BUCKET_STORAGE_CLASS_ARCHIVE:
+            for src_obj in src_obj_list:
+                oss.restore_remote_file(src_obj)
+            time.sleep(90)
+            while oss.check_restore_status(src_obj_list[-1]) == 200:
+                time.sleep(10)
+            oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
         else:
             oss.copy_remote_files(copy_list, storage_class=config.default_storage_class)
 

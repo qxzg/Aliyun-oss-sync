@@ -2,7 +2,9 @@ OSSAccessKeyId = ""  # OSS服务用户AK
 OSSAccessKeySecret = ""  # OSS服务用户SK
 OssEndpoint = ""  # OSS Endpoint
 bucket_name = ""  # OSS Bucket名称
-default_storage_class = "Archive"  # Object的存储类型，取值：Standard、IA、Archive和ColdArchive
+
+default_storage_class = "Archive"  # Object的存储类型，取值：Standard、IA、Archive、ColdArchive和DeepColdArchive
+stored_in_DeepColdArchive = True  # 当以其他存储类型上传，但是后续通过生命周期将存储类型沉降为DeepColdArchive时设为True，影响复制时的决策
 
 local_base_dir = "/mnt/"  # 本地工作目录（绝对路径, eg：/mnt/）
 remote_base_dir = "nas-backup/"  # 上传至OSS时的路径前缀
@@ -18,7 +20,7 @@ LogFormat = "%(asctime)s %(name)s - [%(levelname)s]: %(message)s"  # 日志输�
 
 SCT_Send_Key = ""  # Server酱·Turbo推送密钥 （可选填）
 
-# 在计算文件哈希值时允许一次性打开的最大文件大小(MB)，提高此参数可以加快大文件的计算速度，但是会增加内存消耗
+# 在计算文件哈希值时允许一次性打开的最大文件大小(B)，提高此参数可以加快大文件的计算速度，但是会增加内存消耗
 MaxMemoryUsageAllow = (1024 * 1024) * 1024
 
 Encrypted_Filename_With_Sha256 = False
