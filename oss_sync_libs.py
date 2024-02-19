@@ -114,6 +114,14 @@ def calculate_local_file_sha256(file_name: str):
     return m.hexdigest()
 
 
+def check_connection_status():
+    try:
+        requests.get("https://" + config.OssEndpoint, timeout=1)
+    except requests.exceptions.ConnectionError:
+        return False
+    return True
+
+
 class OssOperation(object):  # TODO 使用@retry重写重试部分
 
     def __init__(self, rsa_passphrase=None):
@@ -155,14 +163,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
             logger.critical("Bucket:\"%s\"不存在" % config.bucket_name)
             raise ValueError("Bucket:\"%s\"不存在" % config.bucket_name)
 
-        self.__ping_cmd = ["ping", "1", config.OssEndpoint]
-        if os.name == 'nt':
-            self.__ping_cmd.insert(1, "-n")
-        elif os.name == 'posix':
-            self.__ping_cmd.insert(1, "-c")
-        else:
-            raise OSError("无法识别操作系统")
-        if subprocess.run(self.__ping_cmd, capture_output=True).returncode != 0:
+        if not check_connection_status():
             logger.error("无法连接至%s，请检查OssEndpoint和网络配置" % config.OssEndpoint)
             raise ValueError("无法连接至%s，请检查OssEndpoint和网络配置" % config.OssEndpoint)
 
@@ -224,7 +225,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                     logger.exception("[encrypt_and_upload_files] Error")
                     raise oss2.exceptions.RequestError
                 sleep(square(retry_count) * 10)
-                while subprocess.run(self.__ping_cmd, capture_output=True).returncode != 0:
+                while not check_connection_status():
                     logger.error("无法连接网络，10秒后重试")
                     sleep(10)
         return 200
@@ -257,7 +258,7 @@ class OssOperation(object):  # TODO 使用@retry重写重试部分
                     logger.exception("[Download_File_Encrypted] Error")
                     raise oss2.exceptions.RequestError
                 sleep(square(retry_count) * 10)
-                while subprocess.run(self.__ping_cmd, capture_output=True).returncode != 0:
+                while not check_connection_status():
                     logger.error("无法连接网络，10秒后重试")
                     sleep(10)
             except oss2.exceptions.NoSuchKey:
