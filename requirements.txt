@@ -5,5 +5,5 @@ oss2~=2.18.4
 requests~=2.32.2
 rich~=13.7.0
 pycryptodome==3.20.0
-alibabacloud_tea_openapi~=0.3.8
+alibabacloud_tea_openapi~=0.3.10
 alibabacloud_kms20160120~=2.2.0
