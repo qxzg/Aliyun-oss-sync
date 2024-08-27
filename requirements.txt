@@ -2,7 +2,7 @@ crcmod~=1.7
 numpy~=1.26.4
 tenacity~=8.3.0
 oss2~=2.18.4
-requests~=2.32.2
+requests~=2.32.3
 rich~=13.7.0
 pycryptodome==3.20.0
 alibabacloud_tea_openapi~=0.3.11
